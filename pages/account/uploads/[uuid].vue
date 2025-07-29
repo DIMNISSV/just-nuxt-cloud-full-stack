@@ -91,7 +91,7 @@
                 <select v-model="form.video_stream_id"
                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                   <option :value="null" disabled>-- Выберите видео --</option>
-                  <option v-for="stream in allVideoStreams" :key="stream.id" :value="stream.id">
+                  <option v-for="stream in allAvailableVideoStreams" :key="stream.id" :value="stream.id">
                     ID {{ stream.id }}: {{ stream.title }} (от {{ stream.uploader_username }})
                   </option>
                 </select>
@@ -161,14 +161,41 @@ const { data: uploadData, pending, error, refresh } = await useAsyncData<{ uploa
   `upload-data-${uuid}`, () => $fetch(`/api/v1/uploads/${uuid}`)
 );
 
+const videoStreamFromCurrentUpload = computed(() => {
+    return uploadData.value?.upload.streams.find(s => s.stream_type === 'video');
+});
+
+const allAvailableVideoStreams = computed(() => {
+    // // Начинаем со списка "чужих" равок, которые пришли по API
+    // // В будущем API должен будет возвращать только релевантные равки (например, от того же сериала)
+    // const otherRaws = [...allVideoStreams.value]; 
+
+    // const streams = [...otherRaws];
+
+    // // Добавляем равку из текущей загрузки в начало списка, если она есть
+    // if (videoStreamFromCurrentUpload.value) {
+    //     // Проверяем, что ее еще нет в списке (на всякий случай)
+    //     if (!streams.some(s => s.id === videoStreamFromCurrentUpload.value!.id)) {
+    //         streams.unshift({
+    //             id: videoStreamFromCurrentUpload.value.id,
+    //             title: videoStreamFromCurrentUpload.value.title || 'Видео из текущей загрузки',
+    //             uploader_username: videoStreamFromCurrentUpload.value.uploader_username
+    //         });
+    //     }
+    // }
+    
+    return allVideoStreams.value;
+});
+
+
 const fetchEpisodeData = async (episodeId: number) => {
   compositionsPending.value = true;
   saveResult.value = null;
   try {
     const [responseData, raws, trans] = await Promise.all([
-      $fetch(`/api/v1/uploads/${uuid}?episodeId=${episodeId}`),
-      $fetch(`/api/v1/episodes/${episodeId}/available-raws`),
-      $fetch('/api/v1/translators'),
+      $fetch<{ existingCompositions: Composition[] }>(`/api/v1/uploads/${uuid}?episodeId=${episodeId}`),
+      $fetch<Pick<MediaStream, 'id' | 'title' | 'uploader_username'>[]>(`/api/v1/episodes/${episodeId}/available-raws`),
+      $fetch<Translator[]>('/api/v1/translators'),
     ]);
     existingCompositions.value = responseData.existingCompositions as Composition[];
     allVideoStreams.value = raws as Pick<MediaStream, 'id' | 'title' | 'uploader_username'>[];
@@ -302,7 +329,6 @@ watch(() => form.translator_id, (newVal) => {
   }
 });
 
-// ★ НОВАЯ ФУНКЦИЯ ДЛЯ СОЗДАНИЯ ★
 async function createNewTranslator(name: string) {
   try {
     const newTranslator = await $fetch<Translator>('/api/v1/translators', {

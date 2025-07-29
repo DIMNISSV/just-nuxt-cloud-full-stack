@@ -15,11 +15,13 @@ export let users: User[] = [
 // --- Медиапотоки ---
 export let mediaStreams: MediaStream[] = [
   // Потоки для "Атаки Титанов"
-  { id: 101, stream_type: 'video', file_path: '/storage/aot_s1_raw.mkv', codec_info: 'H.265, 1080p', uploader_username: 'User1', title: 'AOT S1 BDRip' },
-  { id: 102, stream_type: 'audio', file_path: '/storage/aot_s1_jpn.mka', codec_info: 'FLAC', uploader_username: 'User1', language: 'JPN', title: 'Original S1' },
-  { id: 202, stream_type: 'audio', file_path: '/storage/aot_s1_rus_tvshows.mka', codec_info: 'AC3', uploader_username: 'User2', language: 'RUS', title: 'TVShows S1' },
-  { id: 401, stream_type: 'video', file_path: '/storage/aot_s2_raw.mkv', codec_info: 'H.265, 1080p', uploader_username: 'User1', title: 'AOT S2 BDRip' },
-  { id: 402, stream_type: 'audio', file_path: '/storage/aot_s2_rus_tvshows.mka', codec_info: 'AC3', uploader_username: 'User1', language: 'RUS', title: 'TVShows S2' },
+  { id: 101, stream_type: 'video', file_path: '/storage/aot_e1_raw.mkv', codec_info: 'H.265, 1080p', uploader_username: 'User2', title: 'AOT E1 BDRip' },
+  { id: 102, stream_type: 'audio', file_path: '/storage/aot_e1_jpn.mka', codec_info: 'FLAC', uploader_username: 'User2', language: 'JPN', title: 'Original E1' },
+  { id: 202, stream_type: 'audio', file_path: '/storage/aot_e1_rus_tvshows.mka', codec_info: 'AC3', uploader_username: 'User1', language: 'RUS', title: 'TVShows E1' },
+  { id: 401, stream_type: 'video', file_path: '/storage/aot_e2_raw.mkv', codec_info: 'H.265, 1080p', uploader_username: 'User1', title: 'AOT E2 BDRip' },
+  { id: 402, stream_type: 'audio', file_path: '/storage/aot_e2_rus_tvshows.mka', codec_info: 'AC3', uploader_username: 'User1', language: 'RUS', title: 'TVShows E2' },
+  { id: 501, stream_type: 'video', file_path: '/storage/aot_e2_raw.mkv', codec_info: 'H.265, 1080p', uploader_username: 'User1', title: 'AOT E2 BDRip' },
+  { id: 502, stream_type: 'audio', file_path: '/storage/aot_e2_rus_tvshows.mka', codec_info: 'AC3', uploader_username: 'User1', language: 'RUS', title: 'Неизвестный E2' },
   // Потоки для "Ковбоя Бибопа"
   { id: 301, stream_type: 'video', file_path: '/storage/bebop_raw.mkv', codec_info: 'H.264, 1080p', uploader_username: 'User1', title: 'Bebop BDRip' },
   { id: 302, stream_type: 'audio', file_path: '/storage/bebop_jpn.mka', codec_info: 'DTS', uploader_username: 'User1', language: 'JPN', title: 'Original Bebop' },
@@ -73,7 +75,7 @@ export let uploads: Upload[] = [
     type: 'file',
     source: 'Attack.on.Titan.S01E01.TVShows.720p.mkv',
     original_filename: 'Attack.on.Titan.S01E01.TVShows.720p.mkv',
-    streams: [mediaStreams[2]],
+    streams: [mediaStreams[0], mediaStreams[1], mediaStreams[2]],
     linked_episode_id: 543,
     userId: 2,
     createdAt: new Date().toISOString()
@@ -85,7 +87,19 @@ export let uploads: Upload[] = [
     type: 'file',
     source: 'Attack.on.Titan.S01E02.TVShows.720p.mkv',
     original_filename: 'Attack.on.Titan.S01E02.TVShows.720p.mkv',
-    streams: [mediaStreams[4]],
+    streams: [mediaStreams[3], mediaStreams[4]],
+    linked_episode_id: 544,
+    userId: 1,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 3,
+    uuid: 'f1e2d3c4-b5a6-4f7e-8c9d-0a1b2c3d4r6f',
+    status: 'completed',
+    type: 'file',
+    source: 'Attack.on.Titan.S01E02.Неизвестный.720p.mkv',
+    original_filename: 'Attack.on.Titan.S01E02.TVShows.720p.mkv',
+    streams: [mediaStreams[5], mediaStreams[6]],
     linked_episode_id: 544,
     userId: 1,
     createdAt: new Date().toISOString()

@@ -14,12 +14,24 @@
             <div class="space-y-4">
                 <div class="p-4 border rounded-lg bg-white">
                     <h2 class="font-semibold mb-2">Загрузки для настройки ({{ uploadsToConfigure.length }} шт.)</h2>
-                    <ul class="text-sm space-y-1 max-h-60 overflow-y-auto">
-                        <li v-for="(upload, index) in uploadsToConfigure" :key="upload.id"
-                            class="p-2 bg-gray-50 rounded">
-                            <span class="font-bold">#{{ index + 1 }}</span>: {{ upload.original_filename }}
-                        </li>
-                    </ul>
+                    <draggable v-model="uploadsToConfigure" item-key="id" tag="ul"
+                        class="text-sm space-y-1 max-h-60 overflow-y-auto" handle=".handle">
+                        <template #item="{ element, index }">
+                            <li class="p-2 bg-gray-50 rounded flex items-center justify-between group">
+                                <div class="flex items-center gap-2">
+                                    <!-- Иконка для перетаскивания (handle) -->
+                                    <span class="handle cursor-grab text-gray-400 group-hover:text-gray-600">☰</span>
+                                    <span class="font-bold">#{{ index + 1 }}</span>: {{ element.original_filename }}
+                                </div>
+                                <!-- Кнопка удаления элемента из списка -->
+                                <button @click="uploadsToConfigure.splice(index, 1)"
+                                    class="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100"
+                                    title="Убрать из списка">
+                                    ×
+                                </button>
+                            </li>
+                        </template>
+                    </draggable>
                 </div>
                 <div v-if="selectedEpisodeInfo" class="p-4 border rounded-lg bg-white">
                     <h2 class="font-semibold mb-2">План привязки</h2>
@@ -51,17 +63,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import type { Upload, EpisodeSelection } from '~/types';
 import EpisodeSelector from '~/components/EpisodeSelector.vue';
+import draggable from 'vuedraggable';
 
 definePageMeta({ middleware: 'auth' });
 
 const route = useRoute();
 const { data: allUploads } = await useFetch<Upload[]>('/api/v1/uploads');
+const uploadsToConfigure = ref<Upload[]>([]);
+onMounted(() => {
+    const idsQuery = (route.query.ids as string || '').split(',').map(String).filter(Boolean);
+    const filteredUploads = allUploads.value?.filter(u => idsQuery.includes(u.uuid) && !u.linked_episode_id) || [];
+    uploadsToConfigure.value = filteredUploads;
+});
 
-const idsQuery = (route.query.ids as string || '').split(',').map(Number).filter(Boolean);
-const uploadsToConfigure = allUploads.value?.filter(u => idsQuery.includes(u.id) && !u.linked_episode_id) || [];
+const idsQuery = (route.query.ids as string || '').split(',').map(String).filter(Boolean);
 
 const selectedEpisodeInfo = ref<EpisodeSelection | null>(null);
 const shouldAutoCreateEpisodes = ref(true);
@@ -83,7 +101,7 @@ const handleSubmit = async () => {
         const response = await $fetch<{ message: string }>('/api/v1/uploads/batch-configure', {
             method: 'POST',
             body: {
-                uploadIds: uploadsToConfigure.map(u => u.id),
+                uploadIds: uploadsToConfigure.value.map(u => u.id),
                 startEpisodeId: selectedEpisodeInfo.value.episodeId,
                 autoCreateEpisodes: shouldAutoCreateEpisodes.value,
             }

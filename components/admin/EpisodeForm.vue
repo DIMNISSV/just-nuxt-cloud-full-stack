@@ -22,7 +22,7 @@
 
         <!-- Внешние ID -->
         <div class="pt-4 border-t">
-            <h3 class="text-sm font-medium text-gray-900 mb-2">Внешние ID (для сезона)</h3>
+            <h3 class="text-sm font-medium text-gray-900 mb-2">ВнВнешние ID (для этого эпизода)</h3>
             <div class="space-y-2">
                 <div v-for="dbType in Object.values(ExternalDbType)" :key="dbType" class="flex items-center gap-2">
                     <label :for="`ext-id-${dbType}`" class="w-24 text-sm text-gray-500 capitalize">{{ dbType }}

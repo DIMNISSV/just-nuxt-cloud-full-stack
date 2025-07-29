@@ -41,8 +41,8 @@
           <tr v-for="upload in uploads" :key="upload.uuid" class="border-b"
             :class="{ 'bg-blue-50 hover:bg-blue-100': selectedUploads.includes(upload.uuid), 'hover:bg-gray-50': !selectedUploads.includes(upload.uuid) }">
             <td class="p-3">
-              <input type="checkbox" :value="upload.uuid" v-model="selectedUploads" :disabled="!!upload.linked_episode_id"
-                class="rounded disabled:opacity-50 disabled:cursor-not-allowed">
+              <input type="checkbox" :value="upload.uuid" v-model="selectedUploads"
+                :disabled="!!upload.linked_episode_id" class="rounded disabled:opacity-50 disabled:cursor-not-allowed">
             </td>
             <td class="p-3 font-mono truncate max-w-xs" :title="upload.source">{{ upload.source }}</td>
             <td class="p-3">{{ upload.type }}</td>
@@ -50,9 +50,14 @@
               <span class="px-2 py-1 text-xs rounded-full font-semibold" :class="statusClasses[upload.status]">
                 {{ upload.status }}
               </span>
-              <p v-if="upload.status === 'error'" class="text-xs text-red-500 mt-1" :title="upload.statusMessage">
-                {{ upload.statusMessage }}
-              </p>
+              <div v-if="upload.status === 'error'" class="mt-1">
+                <p class="text-xs text-red-500" :title="upload.statusMessage">
+                  {{ upload.statusMessage }}
+                </p>
+                <button @click="handleRetry(upload.uuid)" class="text-xs text-blue-600 hover:underline">
+                  Повторить
+                </button>
+              </div>
             </td>
             <td class="p-3 text-gray-500">{{ new Date(upload.createdAt).toLocaleString() }}</td>
             <td class="p-3 text-right">
@@ -135,6 +140,15 @@ onUnmounted(() => {
     clearInterval(pollingInterval);
   }
 });
+
+async function handleRetry(uuid: string) {
+  try {
+    await $fetch(`/api/v1/uploads/${uuid}/retry`, { method: 'POST' });
+    refresh(); // Обновляем список, чтобы увидеть изменение статуса
+  } catch (e) {
+    alert('Не удалось повторить загрузку.');
+  }
+}
 
 const statusClasses: Record<UploadStatus, string> = {
   new: 'bg-gray-200 text-gray-800',

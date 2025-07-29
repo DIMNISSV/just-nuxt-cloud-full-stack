@@ -97,12 +97,10 @@ const player = reactive({
 
 // --- Загрузка данных ---
 
-// ★ ПРАВИЛЬНОЕ ИСПОЛЬЗОВАНИЕ useFetch ★
 // Мы указываем только один дженерик - тип для УСПЕШНОГО ответа.
 // TypeScript теперь сам правильно выведет тип для `error` как Ref<FetchError | null>
 const { data: series, pending, error } = await useFetch<Series>(`/api/v1/series/${seriesId}`);
 
-// ★ ПРАВИЛЬНАЯ ОБРАБОТКА ОШИБКИ ★
 // Мы проверяем, существует ли ошибка. Если да, то TypeScript теперь знает,
 // что `error.value` это объект `FetchError`, у которого есть `statusCode`.
 if (error.value) {

@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
 
   // Валидация тела запроса
   if (!body.compositions || !Array.isArray(body.compositions)) {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid request body' });
+    throw createError({ statusCode: 400, statusMessage: 'Invalid request body' });
   }
 
   const episodeId = body.episode_identity.episodeId;
@@ -14,13 +14,13 @@ export default defineEventHandler(async (event) => {
   const usedAudioStreamIds = compositions
     .filter(c => c.episodeId === episodeId)
     .map(c => c.audio_stream_id);
-  
+
   for (const comp of body.compositions) {
     if (usedAudioStreamIds.includes(comp.audio_stream_id)) {
       const usedStream = mediaStreams.find(s => s.id === comp.audio_stream_id);
-      throw createError({ 
+      throw createError({
         statusCode: 409,
-        statusMessage: `Ошибка: Аудиопоток "${usedStream?.title}" (ID: ${comp.audio_stream_id}) уже используется.` 
+        statusMessage: `Ошибка: Аудиопоток "${usedStream?.title}" (ID: ${comp.audio_stream_id}) уже используется.`
       });
     }
   }
@@ -31,13 +31,17 @@ export default defineEventHandler(async (event) => {
     const audio = mediaStreams.find(s => s.id === comp.audio_stream_id);
     const translator = translators.find(t => t.id === comp.translator_id);
     const subtitles = mediaStreams.filter(s => comp.linked_subtitle_stream_ids?.includes(s.id));
-    
+    console.log('TEST', mediaStreams, video, audio, translator)
+
+    // ЭТОТ КОД СЛИШКОМ ЧАСТО ДУБЛИУРЕТСЯ,
+    const genId = () => parseInt(`${Date.now()}${Math.round(Math.random() * 100)}`);
+    // НЕОБХОДИМО ПЕРЕНЕСТИ В УТИЛИТЫ.
+
     if (video && audio && translator) {
       const newComposition = {
-        // ★ НОВОЕ ПОЛЕ: УНИКАЛЬНЫЙ ID СБОРКИ ★
-        id: Date.now() + Math.random(), // Math.random чтобы избежать коллизий при быстрой отправке
+        id: genId(), // Math.random чтобы избежать коллизий при быстрой отправке
         name: translator.name,
-        episodeId: episodeId, 
+        episodeId: episodeId,
         video_stream_id: video.id,
         audio_stream_id: audio.id,
         player_config: {

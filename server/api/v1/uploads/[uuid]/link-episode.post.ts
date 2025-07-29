@@ -14,7 +14,6 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 404, statusMessage: 'Загрузка не найдена' });
     }
 
-    // ★ ГЛАВНАЯ ПРОВЕРКА ★
     if (uploads[uploadIndex].linked_episode_id !== null) {
         throw createError({
             statusCode: 409, // Conflict

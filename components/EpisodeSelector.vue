@@ -9,12 +9,16 @@
                 <input id="series-search" type="text" v-model="searchQuery" placeholder="Начните вводить название..."
                     class="w-full rounded-md border-gray-300 shadow-sm">
                 <!-- Результаты поиска -->
-                <div v-if="searchQuery && searchResults.length > 0"
+                <div v-if="searchQuery"
                     class="absolute z-10 w-full bg-white border mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
                     <ul>
-                        <li v-for="series in searchResults" :key="series.id" @click="selectSeries(series.id)"
-                            class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm">
+                        <li v-if="searchResults.length > 0" v-for="series in searchResults" :key="series.id"
+                            @click="selectSeries(series.id)" class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm">
                             {{ series.title }}
+                        </li>
+                        <li v-if="!isSearching" @click="openCreateSeriesModal"
+                            class="px-3 py-2 hover:bg-gray-100 hover:underline cursor-pointer text-sm text-blue-600">
+                            Создать сериал "{{ searchQuery }}"...
                         </li>
                     </ul>
                 </div>
@@ -52,8 +56,30 @@
                             Эпизод {{ episode.episode_number }}: {{ episode.title }}
                         </option>
                     </select>
+                    <button @click="openCreateEpisodeModal" class="text-xs text-blue-600 hover:underline">Создать
+                        эпизод</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для создания Сериала -->
+    <div v-if="isCreateSeriesModalOpen"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg w-full max-w-md shadow-xl">
+            <h2 class="text-xl font-bold mb-4">Создать новый сериал</h2>
+            <AdminSeriesForm :initial-data="null" @close="isCreateSeriesModalOpen = false"
+                @submitted="onSeriesCreated" />
+        </div>
+    </div>
+
+    <!-- Модальное окно для создания Эпизода -->
+    <div v-if="isCreateEpisodeModalOpen && selectedSeriesData"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg w-full max-w-md shadow-xl">
+            <h2 class="text-xl font-bold mb-4">Создать новый эпизод</h2>
+            <AdminEpisodeForm :series-id="selectedSeriesData.id" :initial-data="null"
+                @close="isCreateEpisodeModalOpen = false" @submitted="onEpisodeCreated" />
         </div>
     </div>
 </template>
@@ -61,6 +87,8 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
+import AdminSeriesForm from '~/components/admin/SeriesForm.vue';
+import AdminEpisodeForm from '~/components/admin/EpisodeForm.vue';
 
 // Определяем события, которые компонент будет отправлять родителю
 const emit = defineEmits(['episodeSelected']);
@@ -71,6 +99,44 @@ const isSearching = ref(false);
 const selectedSeriesData = ref(null);
 const selectedSeasonNumber = ref(null);
 const selectedEpisodeId = ref(null);
+const isCreateSeriesModalOpen = ref(false);
+const isCreateEpisodeModalOpen = ref(false);
+
+const openCreateSeriesModal = () => {
+    isCreateSeriesModalOpen.value = true;
+};
+const openCreateEpisodeModal = () => {
+    if (!selectedSeriesData.value) return; // Защита
+    isCreateEpisodeModalOpen.value = true;
+};
+
+const onSeriesCreated = (newSeries) => {
+    isCreateSeriesModalOpen.value = false;
+    // Сразу выбираем только что созданный сериал
+    selectSeries(newSeries.id);
+};
+
+const onEpisodeCreated = async () => {
+    isCreateEpisodeModalOpen.value = false;
+    if (selectedSeriesData.value) {
+        const seriesIdToUpdate = selectedSeriesData.value.id;
+        // 1. Обновляем данные сериала, чтобы получить список с новым эпизодом
+        await selectSeries(seriesIdToUpdate);
+
+        // 2. Находим только что созданный эпизод
+        // (простой способ - найти эпизод с самым большим номером)
+        if (selectedSeriesData.value?.seasons.length > 0) {
+            const allEpisodes = selectedSeriesData.value.seasons.flatMap(s => s.episodes);
+            if (allEpisodes.length > 0) {
+                const latestEpisode = allEpisodes.reduce((latest, current) =>
+                    (latest.episode_number > current.episode_number) ? latest : current
+                );
+                // 3. Программно выбираем его
+                selectedEpisodeId.value = latestEpisode.id;
+            }
+        }
+    }
+};
 
 // Функция поиска с дебаунсом, чтобы не отправлять запросы на каждое нажатие клавиши
 const searchForSeries = useDebounceFn(async () => {

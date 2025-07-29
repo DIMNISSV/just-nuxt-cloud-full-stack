@@ -36,7 +36,6 @@ export default defineEventHandler(async (event) => {
 
     season.episodes.push(newEpisode);
 
-    // ★ НОВАЯ ЛОГИКА: Обновление "копилки" ID у родительского сериала ★
     if (external_ids) {
         for (const source in external_ids) {
             const dbType = source as ExternalDbType;

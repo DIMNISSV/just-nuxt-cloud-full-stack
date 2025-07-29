@@ -2,7 +2,6 @@
   <div class="max-w-2xl mx-auto">
     <h1 class="text-3xl font-bold mb-6">Новая загрузка</h1>
     <div class="bg-white p-8 rounded-lg shadow-md border">
-      <!-- ★ НОВАЯ СЕКЦИЯ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ ★ -->
       <div class="mb-6 pb-6 border-b">
         <label for="file-upload" class="block text-sm font-medium text-gray-700">Пакетная загрузка файлов</label>
         <div class="mt-1 p-6 border-2 border-dashed rounded-md text-center">
@@ -16,7 +15,6 @@
         <div>
           <label for="type" class="block text-sm font-medium text-gray-700">Тип загрузки</label>
           <select id="type" v-model="type" class="mt-1 block w-full rounded-md border-gray-300">
-            <!-- ★ УПРОЩЕННЫЙ СПИСОК ★ -->
             <option value="url">Универсальная (yt-dlp)</option>
             <option value="torrent">Торрент (magnet)</option>
           </select>

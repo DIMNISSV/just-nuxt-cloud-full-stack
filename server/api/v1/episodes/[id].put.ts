@@ -14,12 +14,10 @@ export default defineEventHandler(async (event) => {
         for (const season of s.seasons) {
             const episodeIndex = season.episodes.findIndex(e => e.id === episodeId);
             if (episodeIndex !== -1) {
-                // 1. Обновляем основные данные
                 season.episodes[episodeIndex].title = title !== undefined ? title : season.episodes[episodeIndex].title;
-                // 2. Обновляем или добавляем external_ids
+
                 season.episodes[episodeIndex].external_ids = external_ids || {};
 
-                // 3. ★ ОБНОВЛЯЕМ "КОПИЛКУ" РОДИТЕЛЯ ★
                 if (external_ids) {
                     for (const source in external_ids) {
                         const dbType = source as ExternalDbType;
