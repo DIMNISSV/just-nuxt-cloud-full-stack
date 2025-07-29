@@ -14,7 +14,7 @@ export const useAuth = () => {
     const token = useCookie<string | null>('auth_token', { default: () => null });
 
     const isLoggedIn = computed(() => !!user.value);
-    const isAdmin = computed(() => isLoggedIn && user.value?.role === 'admin');
+    const isAdmin = computed(() => isLoggedIn && user.value?.role === 'ADMIN');
 
     // Функция для входа в систему
     const login = async (username: string, password: string) => {

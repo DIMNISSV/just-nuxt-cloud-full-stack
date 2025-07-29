@@ -9,7 +9,7 @@
         </div>
         
         <!-- Центральная часть: Разделы админки (только для админов) -->
-        <div v-if="user?.role === 'admin'" class="flex items-center gap-4 text-sm font-semibold text-yellow-300">
+        <div v-if="user?.role === 'ADMIN'" class="flex items-center gap-4 text-sm font-semibold text-yellow-300">
           <NuxtLink to="/admin/series" class="hover:text-yellow-100">Сериалы</NuxtLink>
           <NuxtLink to="/admin/translators" class="hover:text-yellow-100">Переводчики</NuxtLink>
           <NuxtLink to="/admin/users" class="hover:text-yellow-100">Пользователи</NuxtLink>
