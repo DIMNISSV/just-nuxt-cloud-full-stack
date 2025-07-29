@@ -1,3 +1,4 @@
+import { Role } from '@prisma/client'
 import bcrypt from 'bcrypt'
 import prisma from '~/server/utils/prisma'
 
