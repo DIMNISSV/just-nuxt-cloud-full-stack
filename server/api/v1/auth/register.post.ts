@@ -1,33 +1,29 @@
-import { users } from '~/server/data/db';
-import type { User } from '~/types';
+import bcrypt from 'bcrypt'
+import prisma from '~/server/utils/prisma'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
-  const { username, password } = body;
+  const { username, password } = await readBody(event)
 
   if (!username || !password) {
-    throw createError({ statusCode: 400, message: 'Имя пользователя и пароль обязательны' });
+    throw createError({ statusCode: 400, message: 'Имя пользователя и пароль обязательны' })
   }
 
-  // Проверяем, не занято ли имя пользователя
-  const existingUser = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+  const existingUser = await prisma.user.findUnique({ where: { username } })
   if (existingUser) {
-    throw createError({ statusCode: 409, message: 'Пользователь с таким именем уже существует' });
+    throw createError({ statusCode: 409, message: 'Пользователь с таким именем уже существует' })
   }
 
-  const newUser: User = {
-    id: Date.now(),
-    username: username,
-    passwordHash: `hashed_${password}`, // Имитация хеширования
-    role: 'user'
-  };
+  const passwordHash = await bcrypt.hash(password, 10)
 
-  users.push(newUser);
+  const user = await prisma.user.create({
+    data: {
+      username,
+      passwordHash,
+      // Первого зарегистрированного пользователя делаем админом для удобства
+      role: (await prisma.user.count()) === 0 ? 'ADMIN' : 'USER',
+    },
+    select: { id: true, username: true, role: true }, // Никогда не возвращаем хеш пароля
+  })
 
-  // Не возвращаем пароль
-  return {
-    id: newUser.id,
-    username: newUser.username,
-    role: newUser.role
-  };
-});
+  return user
+})
