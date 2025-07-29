@@ -98,7 +98,7 @@ const handleSubmit = async () => {
     isError.value = false;
 
     try {
-        const response = await $fetch<{ message: string }>('/api/v1/uploads/batch-configure', {
+        const response = await $fetch<{ message: string }>('/api/v1/account/uploads/batch-configure', {
             method: 'POST',
             body: {
                 uploadIds: uploadsToConfigure.value.map(u => u.id),

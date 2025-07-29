@@ -215,7 +215,7 @@ async function linkEpisode() {
   if (!selectedEpisodeInfo.value) return;
   isLinking.value = true;
   try {
-    await $fetch(`/api/v1/uploads/${uuid}/link-episode`, {
+    await $fetch(`/api/v1/account/uploads/${uuid}/link-episode`, {
       method: 'POST',
       body: { episodeId: selectedEpisodeInfo.value.episodeId }
     });
@@ -287,7 +287,7 @@ async function submitForm() {
         episode_identity: { episodeId: uploadData.value.upload.linked_episode_id },
         compositions: [form],
       };
-      await $fetch(`/api/v1/uploads/${uuid}/configure`, { method: 'PUT', body: payload });
+      await $fetch(`/api/v1/account/uploads/${uuid}/configure`, { method: 'PUT', body: payload });
       saveResult.value = { message: 'Новая сборка успешно создана.' };
     }
     resetForm();

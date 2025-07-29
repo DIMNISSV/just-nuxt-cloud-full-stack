@@ -117,7 +117,7 @@ const goToBatchEdit = () => {
 async function handleDelete(uuid: string) {
   if (!confirm('Вы уверены, что хотите удалить эту загрузку? Связанные сборки также будут удалены.')) return;
   try {
-    await $fetch(`/api/v1/uploads/${uuid}`, { method: 'DELETE' });
+    await $fetch(`/api/v1/account/uploads/${uuid}`, { method: 'DELETE' });
     refresh();
   } catch (e) {
     alert('Ошибка при удалении загрузки');
@@ -143,7 +143,7 @@ onUnmounted(() => {
 
 async function handleRetry(uuid: string) {
   try {
-    await $fetch(`/api/v1/uploads/${uuid}/retry`, { method: 'POST' });
+    await $fetch(`/api/v1/account/uploads/${uuid}/retry`, { method: 'POST' });
     refresh(); // Обновляем список, чтобы увидеть изменение статуса
   } catch (e) {
     alert('Не удалось повторить загрузку.');

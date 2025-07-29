@@ -107,7 +107,7 @@ async function handleSubmit() {
                 body: { title: payload.title, external_ids: payload.external_ids }
             });
         } else {
-            await $fetch(`/api/v1/series/${props.seriesId}/episodes`, {
+            await $fetch(`/api/v1/admin/series/${props.seriesId}/episodes`, {
                 method: 'POST',
                 body: payload
             });

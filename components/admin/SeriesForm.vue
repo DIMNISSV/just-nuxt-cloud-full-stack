@@ -70,12 +70,12 @@ async function handleSubmit() {
     try {
         let result: Series;
         if (isEditing.value && props.initialData) {
-            result = await $fetch(`/api/v1/series/${props.initialData.id}`, {
+            result = await $fetch(`/api/v1/admin/series/${props.initialData.id}`, {
                 method: 'PUT',
                 body: formData
             });
         } else {
-            result = await $fetch('/api/v1/series', {
+            result = await $fetch('/api/v1/admin/series', {
                 method: 'POST',
                 body: formData
             });
