@@ -1,25 +1,33 @@
-import { series } from '~/server/data/db';
+import prisma from '~/server/utils/prisma'
 
-export default defineEventHandler((event) => {
-  // Добавляем проверку, чтобы удовлетворить TypeScript
-  const seriesId = parseInt(event.context.params?.id ?? '', 10);
-
-  // Проверяем, удалось ли распарсить ID
+export default defineEventHandler(async (event) => {
+  const seriesId = parseInt(event.context.params?.id ?? '', 10)
   if (isNaN(seriesId)) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Bad Request: Invalid Series ID',
-    });
+    throw createError({ statusCode: 400, message: 'Неверный ID сериала' })
   }
 
-  const foundSeries = series.find(s => s.id === seriesId);
+  const series = await prisma.series.findUnique({
+    where: { id: seriesId },
+    include: {
+      seasons: {
+        orderBy: { seasonNumber: 'asc' },
+        include: {
+          episodes: {
+            orderBy: { episodeNumber: 'asc' },
+            select: {
+              id: true,
+              episodeNumber: true,
+              title: true,
+              externalIds: true,
+            },
+          },
+        },
+      },
+    },
+  })
 
-  if (!foundSeries) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Series Not Found',
-    });
+  if (!series) {
+    throw createError({ statusCode: 404, message: 'Сериал не найден' })
   }
-
-  return foundSeries;
-});
+  return series
+})

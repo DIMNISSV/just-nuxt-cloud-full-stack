@@ -1,22 +1,26 @@
-import { series } from '~/server/data/db';
+import prisma from '~/server/utils/prisma'
 
-export default defineEventHandler((event) => {
-  const query = getQuery(event);
-  const searchQuery = (query.q as string)?.toLowerCase();
-  const isFull = (query.full as boolean);
+export default defineEventHandler(async (event) => {
+  const query = getQuery(event)
+  const searchQuery = (query.q as string)?.toLowerCase()
 
-  let results = series;
-
-  if (searchQuery) {
-    results = series.filter(s =>
-      s.title.toLowerCase().includes(searchQuery)
-    );
-  }
-
-  if (isFull) return results
-  else return results.map(s => ({
-    id: s.id,
-    title: s.title,
-    poster_url: s.poster_url
-  }));
-});
+  const series = await prisma.series.findMany({
+    where: searchQuery
+      ? {
+        title: {
+          contains: searchQuery,
+          mode: 'insensitive', // Поиск без учета регистра
+        },
+      }
+      : undefined,
+    select: {
+      id: true,
+      title: true,
+      posterUrl: true,
+    },
+    orderBy: {
+      title: 'asc',
+    },
+  })
+  return series
+})
