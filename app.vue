@@ -38,5 +38,5 @@
 
 <script setup lang="ts">
 // Nuxt 3 автоматически импортирует компоненты из папки /components
-const { user, isLoggedIn } = useAuth();
+// const { user, isLoggedIn } = useAuth();
 </script>

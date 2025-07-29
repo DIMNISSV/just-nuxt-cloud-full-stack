@@ -1,19 +1,16 @@
+// server/api/v1/auth/me.get.ts
 import prisma from '~/server/utils/prisma'
 
 export default defineEventHandler(async (event) => {
-    // Данные о пользователе (id, role) будут добавлены в контекст middleware
-    const userContext = event.context.user
-
-    if (!userContext) {
-        throw createError({ statusCode: 401, message: 'Необходима авторизация' })
-    }
+    const userId = event.context.user?.userId
 
     const user = await prisma.user.findUnique({
-        where: { id: userContext.userId },
-        select: { id: true, username: true, role: true }, // Возвращаем только публичные данные
+        where: { id: userId },
+        select: { id: true, username: true, role: true },
     })
 
     if (!user) {
+        // Эта ошибка маловероятна, если токен валидный, но для полноты картины оставим
         throw createError({ statusCode: 404, message: 'Пользователь не найден' })
     }
 
