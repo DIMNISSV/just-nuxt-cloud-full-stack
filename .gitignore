@@ -22,8 +22,10 @@ logs
 .env
 .env.*
 !.env.example
-# .vscode
+.vscode
+temp
 
 # My utils
 .collected_code
 .collect_code_for_sharing.py
+/generated/prisma
