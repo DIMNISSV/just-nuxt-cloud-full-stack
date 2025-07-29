@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Модель пользователя
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  uploads      Upload[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// Модель загрузки (исходный файл)
+model Upload {
+  id                Int           @id @default(autoincrement())
+  uuid              String        @unique @default(uuid())
+  status            UploadStatus  @default(NEW)
+  statusMessage     String?
+  type              String // url, torrent, etc.
+  source            String // URL, magnet link
+  originalFilename  String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  user              User          @relation(fields: [userId], references: [id])
+  userId            Int
+  mediaStreams      MediaStream[]
+  linkedEpisodeId   Int? // ID эпизода, к которому привязана вся загрузка (для контекста)
+  linkedEpisode     Episode?      @relation(fields: [linkedEpisodeId], references: [id], onDelete: SetNull)
+}
+
+enum UploadStatus {
+  NEW
+  DOWNLOADING
+  PROCESSING
+  COMPLETED
+  ERROR
+}
+
+// Модель медиапотока (отдельный файл видео/аудио/субтитров)
+model MediaStream {
+  id                Int           @id @default(autoincrement())
+  type              StreamType
+  filePath          String // Ключ объекта в S3
+  codecInfo         String?
+  title             String?
+  language          String?
+  createdAt         DateTime      @default(now())
+  upload            Upload        @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  uploadId          Int
+  // Связи для сборок (композиций)
+  compositionsAsVideo Composition[] @relation("VideoSource")
+  compositionsAsAudio Composition[] @relation("AudioSource")
+}
+
+enum StreamType {
+  VIDEO
+  AUDIO
+  SUBTITLE
+}
+
+// Модель "Сборки" или "Перевода"
+model Composition {
+  id            Int         @id @default(autoincrement())
+  name          String // Название перевода, например "TVShows"
+  audioOffsetMs Int         @default(0) // Задержка аудио
+  createdAt     DateTime    @default(now())
+  episode       Episode     @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  episodeId     Int
+  videoStream   MediaStream @relation("VideoSource", fields: [videoStreamId], references: [id], onDelete: Cascade)
+  videoStreamId Int
+  audioStream   MediaStream @relation("AudioSource",fields: [audioStreamId], references: [id], onDelete: Cascade)
+  audioStreamId Int
+  translator    Translator  @relation(fields: [translatorId], references: [id], onDelete: Restrict)
+  translatorId  Int
+}
+
+// Модель переводчика/студии
+model Translator {
+  id           Int           @id @default(autoincrement())
+  name         String        @unique
+  compositions Composition[]
+}
+
+// Модель Сериала (франшизы)
+model Series {
+  id         Int       @id @default(autoincrement())
+  title      String    @unique
+  posterUrl  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  seasons    Season[]
+  externalIds Json? // "Копилка" внешних ID
+}
+
+// Модель Сезона
+model Season {
+  id            Int      @id @default(autoincrement())
+  seasonNumber  Int
+  createdAt     DateTime @default(now())
+  series        Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  seriesId      Int
+  episodes      Episode[]
+
+  @@unique([seriesId, seasonNumber]) // Номер сезона должен быть уникальным в рамках одного сериала
+}
+
+// Модель Эпизода
+model Episode {
+  id             Int           @id @default(autoincrement())
+  episodeNumber  Int
+  title          String?
+  createdAt      DateTime      @default(now())
+  season         Season        @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  seasonId       Int
+  compositions   Composition[]
+  uploads        Upload[] // Связь для linkedEpisodeId
+  externalIds    Json?
+  
+  @@unique([seasonId, episodeNumber]) // Номер эпизода должен быть уникальным в рамках одного сезона
+}
