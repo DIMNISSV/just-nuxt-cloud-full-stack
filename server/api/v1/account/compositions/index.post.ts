@@ -6,10 +6,10 @@ export default defineEventHandler(async (event) => {
   // Права на создание сборок может иметь любой авторизованный пользователь
   const {
     episodeId,
-    video_stream_id: videoStreamId,
-    audio_stream_id: audioStreamId,
-    translator_id: translatorId,
-    audio_offset_ms: audioOffsetMs
+    videoStreamId: videoStreamId,
+    audioStreamId: audioStreamId,
+    translatorId: translatorId,
+    audioOffsetMs: audioOffsetMs
   } = await readBody(event)
 
   // Валидация входных данных

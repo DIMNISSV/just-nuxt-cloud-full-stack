@@ -32,6 +32,6 @@ export default defineEventHandler(async (event) => {
         id: s.id,
         title: s.title,
         // В реальном приложении здесь нужно было бы получить username через еще один include
-        uploader_username: 'user'
+        uploaderUsername: 'user'
     }));
 })

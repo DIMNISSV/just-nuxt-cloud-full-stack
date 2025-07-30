@@ -21,7 +21,7 @@
                                 <div class="flex items-center gap-2">
                                     <!-- Иконка для перетаскивания (handle) -->
                                     <span class="handle cursor-grab text-gray-400 group-hover:text-gray-600">☰</span>
-                                    <span class="font-bold">#{{ index + 1 }}</span>: {{ element.original_filename }}
+                                    <span class="font-bold">#{{ index + 1 }}</span>: {{ element.originalFilename }}
                                 </div>
                                 <!-- Кнопка удаления элемента из списка -->
                                 <button @click="uploadsToConfigure.splice(index, 1)"
@@ -75,7 +75,7 @@ const { data: allUploads } = await useFetch<Upload[]>('/api/v1/uploads');
 const uploadsToConfigure = ref<Upload[]>([]);
 onMounted(() => {
     const idsQuery = (route.query.ids as string || '').split(',').map(String).filter(Boolean);
-    const filteredUploads = allUploads.value?.filter(u => idsQuery.includes(u.uuid) && !u.linked_episode_id) || [];
+    const filteredUploads = allUploads.value?.filter(u => idsQuery.includes(u.uuid) && !u.linkedEpisodeId) || [];
     uploadsToConfigure.value = filteredUploads;
 });
 

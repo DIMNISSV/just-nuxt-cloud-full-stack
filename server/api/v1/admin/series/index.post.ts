@@ -3,7 +3,7 @@ import prisma from '~/server/utils/prisma'
 
 export default defineEventHandler(async (event) => {
     // Middleware /admin/_ уже проверил права
-    const { title, poster_url: posterUrl } = await readBody(event)
+    const { title, posterUrl: posterUrl } = await readBody(event)
     if (!title) {
         throw createError({ statusCode: 400, message: 'Название сериала обязательно' })
     }

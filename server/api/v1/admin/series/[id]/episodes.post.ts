@@ -4,10 +4,10 @@ import { Prisma } from '@prisma/client'
 export default defineEventHandler(async (event) => {
     const seriesId = parseInt(event.context.params?.id ?? '', 10)
     const {
-        season_number: seasonNumber,
-        episode_number: episodeNumber,
+        seasonNumber: seasonNumber,
+        episodeNumber: episodeNumber,
         title,
-        external_ids: externalIds
+        externalIds: externalIds
     } = await readBody(event)
     // Валидация...
     if (isNaN(seriesId) || !seasonNumber || !episodeNumber) {

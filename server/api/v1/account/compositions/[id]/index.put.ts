@@ -9,10 +9,10 @@ export default defineEventHandler(async (event) => {
     }
 
     const {
-        video_stream_id: videoStreamId,
-        audio_stream_id: audioStreamId,
-        translator_id: translatorId,
-        audio_offset_ms: audioOffsetMs
+        videoStreamId: videoStreamId,
+        audioStreamId: audioStreamId,
+        translatorId: translatorId,
+        audioOffsetMs: audioOffsetMs
     } = await readBody(event)
     if (!videoStreamId || !audioStreamId || !translatorId) {
         throw createError({ statusCode: 400, message: 'Не все обязательные поля заполнены' })

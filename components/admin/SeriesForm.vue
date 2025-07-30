@@ -6,8 +6,8 @@
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
         </div>
         <div>
-            <label for="poster_url" class="block text-sm font-medium text-gray-700">URL постера</label>
-            <input type="url" id="poster_url" v-model="formData.poster_url"
+            <label for="posterUrl" class="block text-sm font-medium text-gray-700">URL постера</label>
+            <input type="url" id="posterUrl" v-model="formData.posterUrl"
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
         </div>
 
@@ -41,7 +41,7 @@ const emit = defineEmits(['close', 'submitted']);
 
 const formData = reactive({
     title: '',
-    poster_url: '',
+    posterUrl: '',
 });
 
 const isLoading = ref(false);
@@ -56,10 +56,10 @@ const buttonText = computed(() => {
 watch(() => props.initialData, (newData) => {
     if (newData) {
         formData.title = newData.title;
-        formData.poster_url = newData.poster_url;
+        formData.posterUrl = newData.posterUrl;
     } else {
         formData.title = '';
-        formData.poster_url = '';
+        formData.posterUrl = '';
     }
 }, { immediate: true });
 

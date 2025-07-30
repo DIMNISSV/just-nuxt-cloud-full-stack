@@ -15,11 +15,11 @@
     <!-- Левая колонка: Постер и эпизоды -->
     <aside class="md:col-span-1 space-y-6">
       <div class="p-4 border rounded-lg bg-white shadow-sm">
-        <img :src="series.poster_url" :alt="series.title" class="w-full rounded-lg shadow-lg mb-4">
+        <img :src="series.posterUrl" :alt="series.title" class="w-full rounded-lg shadow-lg mb-4">
         <h1 class="text-3xl font-bold">{{ series.title }}</h1>
       </div>
-      <div v-for="season in series.seasons" :key="season.season_number" class="p-4 border rounded-lg bg-white shadow-sm">
-        <h2 class="text-xl font-semibold mb-3 border-b pb-2">Сезон {{ season.season_number }}</h2>
+      <div v-for="season in series.seasons" :key="season.seasonNumber" class="p-4 border rounded-lg bg-white shadow-sm">
+        <h2 class="text-xl font-semibold mb-3 border-b pb-2">Сезон {{ season.seasonNumber }}</h2>
         <ul class="space-y-1">
           <li v-for="episode in season.episodes" :key="episode.id">
             <button 
@@ -27,7 +27,7 @@
               class="w-full text-left p-2 rounded transition-colors"
               :class="selectedEpisode?.id === episode.id ? 'bg-blue-100 text-blue-800 font-semibold' : 'hover:bg-gray-100'"
             >
-              Эпизод {{ episode.episode_number }}: {{ episode.title }}
+              Эпизод {{ episode.episodeNumber }}: {{ episode.title }}
             </button>
           </li>
         </ul>
