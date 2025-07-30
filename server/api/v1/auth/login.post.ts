@@ -1,26 +1,30 @@
-import { users } from '~/server/data/db';
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
+import prisma from '~/server/utils/prisma'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
-  const { username, password } = body;
+  const { username, password } = await readBody(event)
+  const config = useRuntimeConfig(event)
 
   if (!username || !password) {
-    throw createError({ statusCode: 400, message: 'Имя пользователя и пароль обязательны' });
+    throw createError({ statusCode: 400, message: 'Имя пользователя и пароль обязательны' })
   }
 
-  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-
-  // Имитируем проверку пароля
-  const isPasswordCorrect = user && user.passwordHash === `hashed_${password}`;
-
-  if (!user || !isPasswordCorrect) {
-    throw createError({ statusCode: 401, message: 'Неверное имя пользователя или пароль' });
+  const user = await prisma.user.findUnique({ where: { username } })
+  if (!user) {
+    throw createError({ statusCode: 401, message: 'Неверное имя пользователя или пароль' })
   }
 
-  // Создаем фейковый токен. В реальности здесь была бы подпись с секретным ключом.
-  const fakeJwt = `fake-jwt-token-for-user-id-${user.id}`;
+  const isPasswordCorrect = await bcrypt.compare(password, user.passwordHash)
+  if (!isPasswordCorrect) {
+    throw createError({ statusCode: 401, message: 'Неверное имя пользователя или пароль' })
+  }
 
-  return {
-    token: fakeJwt
-  };
-});
+  const token = jwt.sign(
+    { userId: user.id, role: user.role },
+    config.jwtSecret,
+    { expiresIn: '7d' } // Срок жизни токена
+  )
+
+  return { token }
+})

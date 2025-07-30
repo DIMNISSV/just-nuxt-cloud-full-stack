@@ -2,14 +2,14 @@
     <form @submit.prevent="handleSubmit" class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <label for="season_number" class="block text-sm font-medium text-gray-700">Номер сезона</label>
-                <input type="number" id="season_number" v-model.number="formData.season_number" required min="0"
+                <label for="seasonNumber" class="block text-sm font-medium text-gray-700">Номер сезона</label>
+                <input type="number" id="seasonNumber" v-model.number="formData.seasonNumber" required min="0"
                     :disabled="isEditing"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed">
             </div>
             <div>
-                <label for="episode_number" class="block text-sm font-medium text-gray-700">Номер эпизода</label>
-                <input type="number" id="episode_number" v-model.number="formData.episode_number" required min="1"
+                <label for="episodeNumber" class="block text-sm font-medium text-gray-700">Номер эпизода</label>
+                <input type="number" id="episodeNumber" v-model.number="formData.episodeNumber" required min="1"
                     :disabled="isEditing"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed">
             </div>
@@ -22,12 +22,12 @@
 
         <!-- Внешние ID -->
         <div class="pt-4 border-t">
-            <h3 class="text-sm font-medium text-gray-900 mb-2">ВнВнешние ID (для этого эпизода)</h3>
+            <h3 class="text-sm font-medium text-gray-900 mb-2">Внешние ID (для этого эпизода)</h3>
             <div class="space-y-2">
                 <div v-for="dbType in Object.values(ExternalDbType)" :key="dbType" class="flex items-center gap-2">
                     <label :for="`ext-id-${dbType}`" class="w-24 text-sm text-gray-500 capitalize">{{ dbType }}
                         ID</label>
-                    <input type="text" :id="`ext-id-${dbType}`" v-model="formData.external_ids[dbType]"
+                    <input type="text" :id="`ext-id-${dbType}`" v-model="formData.externalIds[dbType]"
                         class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
                 </div>
             </div>
@@ -58,16 +58,16 @@ import { ExternalDbType } from '~/types';
 
 const props = defineProps<{
     seriesId: number;
-    initialData?: Episode & { season_number: number } | null;
+    initialData?: Episode & { seasonNumber: number } | null;
 }>();
 
 const emit = defineEmits(['close', 'submitted']);
 
 const createEmptyForm = () => ({
-    season_number: 1,
-    episode_number: 1,
+    seasonNumber: 1,
+    episodeNumber: 1,
     title: '',
-    external_ids: {} as { [key in ExternalDbType]?: string }
+    externalIds: {} as { [key in ExternalDbType]?: string }
 });
 
 const formData = reactive(createEmptyForm());
@@ -83,10 +83,10 @@ const buttonText = computed(() => {
 watch(() => props.initialData, (newData) => {
     Object.assign(formData, createEmptyForm());
     if (newData) {
-        formData.season_number = newData.season_number;
-        formData.episode_number = newData.episode_number;
+        formData.seasonNumber = newData.seasonNumber;
+        formData.episodeNumber = newData.episodeNumber;
         formData.title = newData.title;
-        formData.external_ids = { ...(newData.external_ids || {}) };
+        formData.externalIds = { ...(newData.externalIds || {}) };
     }
 }, { immediate: true, deep: true });
 
@@ -94,22 +94,30 @@ async function handleSubmit() {
     isLoading.value = true;
     error.value = null;
     try {
-        const payload = { ...formData };
-        for (const key in payload.external_ids) {
-            if (!payload.external_ids[key as ExternalDbType]) {
-                delete payload.external_ids[key as ExternalDbType];
+        // Убираем лишнее создание payload, будем отправлять formData напрямую
+        // const payload = { ...formData }; // СТАРАЯ ЛОГИКА
+
+        // Очищаем пустые externalIds, чтобы не засорять БД
+        for (const key in formData.externalIds) {
+            if (!formData.externalIds[key as ExternalDbType]) {
+                delete formData.externalIds[key as ExternalDbType];
             }
         }
 
         if (isEditing.value && props.initialData) {
-            await $fetch(`/api/v1/episodes/${props.initialData.id}`, {
+            // При редактировании отправляем только то, что можно менять
+            await $fetch(`/api/v1/admin/episodes/${props.initialData.id}`, {
                 method: 'PUT',
-                body: { title: payload.title, external_ids: payload.external_ids }
+                body: {
+                    title: formData.title,
+                    externalIds: formData.externalIds
+                }
             });
         } else {
-            await $fetch(`/api/v1/series/${props.seriesId}/episodes`, {
+            // ★ ИСПРАВЛЕНИЕ: При создании отправляем всю форму целиком
+            await $fetch(`/api/v1/admin/series/${props.seriesId}/episodes`, {
                 method: 'POST',
-                body: payload
+                body: formData // Отправляем все данные: seasonNumber, episodeNumber, title и т.д.
             });
         }
         emit('submitted');

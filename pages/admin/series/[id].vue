@@ -18,16 +18,16 @@
             У этого сериала еще нет эпизодов.
         </div>
         <div v-else class="space-y-4">
-            <div v-for="season in series.seasons" :key="season.season_number"
+            <div v-for="season in series.seasons" :key="season.seasonNumber"
                 class="bg-white p-4 rounded-lg shadow-sm border">
-                <h2 class="text-xl font-semibold mb-2">Сезон {{ season.season_number }}</h2>
+                <h2 class="text-xl font-semibold mb-2">Сезон {{ season.seasonNumber }}</h2>
                 <table class="w-full text-sm text-left">
                     <tbody>
                         <tr v-for="episode in season.episodes" :key="episode.id" class="border-t hover:bg-gray-50">
-                            <td class="p-2 w-24">Эпизод #{{ episode.episode_number }}</td>
+                            <td class="p-2 w-24">Эпизод #{{ episode.episodeNumber }}</td>
                             <td class="p-2">{{ episode.title }}</td>
                             <td class="p-2 text-right">
-                                <button @click="openEditModal(episode, season.season_number)"
+                                <button @click="openEditModal(episode, season.seasonNumber)"
                                     class="text-blue-600 hover:underline text-xs mr-4">Редактировать</button>
                                 <button @click="handleDelete(episode.id)"
                                     class="text-red-600 hover:underline text-xs">Удалить</button>
@@ -59,15 +59,15 @@ const seriesId = parseInt(route.params.id as string, 10);
 const { data: series, pending, error, refresh } = await useFetch<Series>(`/api/v1/series/${seriesId}`);
 
 const isModalOpen = ref(false);
-const editingEpisode = ref<(Episode & { season_number: number }) | null>(null);
+const editingEpisode = ref<(Episode & { seasonNumber: number }) | null>(null);
 
 const openCreateModal = () => {
     editingEpisode.value = null;
     isModalOpen.value = true;
 };
 
-const openEditModal = (episode: Episode, season_number: number) => {
-    editingEpisode.value = { ...episode, season_number };
+const openEditModal = (episode: Episode, seasonNumber: number) => {
+    editingEpisode.value = { ...episode, seasonNumber };
     isModalOpen.value = true;
 };
 
@@ -84,7 +84,7 @@ const onFormSubmitted = () => {
 const handleDelete = async (episodeId: number) => {
     if (!confirm('Вы уверены, что хотите удалить этот эпизод?')) return;
     try {
-        await $fetch(`/api/v1/episodes/${episodeId}`, { method: 'DELETE' });
+        await $fetch(`/api/v1/admin/episodes/${episodeId}`, { method: 'DELETE' });
         refresh();
     } catch (e) {
         alert('Ошибка при удалении эпизода');

@@ -1,48 +1,45 @@
-import { alert } from '#build/ui';
-import { uploads, compositions } from '~/server/data/db';
-import type { Composition, Upload } from '~/types';
+// server/api/v1/uploads/[uuid]/index.get.ts
 
-// Определяем тип для успешного ответа нашего API
-interface UploadDetailsResponse {
-  upload: Upload;
-  existingCompositions: Partial<Composition>[];
-}
+import prisma from '~/server/utils/prisma'
 
-export default defineEventHandler((event): UploadDetailsResponse => {
-  const uuid = event.context.params?.uuid;
-
-  // 1. Валидация UUID
-  if (!uuid) throw createError({ statusCode: 400, statusMessage: 'Bad Request: UUID is required' });
-
-  // 2. Поиск самой загрузки
-  const foundUpload = uploads.find(u => u.uuid === uuid);
-
-  if (!foundUpload) throw createError({ statusCode: 404, statusMessage: 'Upload Not Found' });
-
-  // 3. Получение ID эпизода из query-параметра (его может и не быть)
-  const query = getQuery(event);
-  const episodeId = parseInt(query.episodeId as string, 10);
-
-  // 4. Инициализация переменной для существующих сборок
-  let existingCompositions: Partial<Composition>[] = [];
-
-  // 5. Поиск сборок, только если ID эпизода передан и он валиден
-  if (!isNaN(episodeId)) {
-    existingCompositions = compositions
-      .filter(c => c.episodeId === episodeId)
-      .map(c => ({
-        // Возвращаем только те поля, которые нужны UI
-        id: c.id,
-        name: c.name,
-        player_config: c.player_config,
-        audio_stream_id: c.audio_stream_id,
-        video_stream_id: c.video_stream_id,
-      }));
+export default defineEventHandler(async (event) => {
+  const uuid = event.context.params?.uuid
+  if (!uuid) {
+    throw createError({ statusCode: 400, message: 'UUID is required' })
   }
 
-  // 6. Возвращаем полный объект ответа
+  const query = getQuery(event)
+  const episodeId = query.episodeId ? parseInt(query.episodeId as string, 10) : null
+
+  // Ищем загрузку по уникальному UUID
+  const upload = await prisma.upload.findUnique({
+    where: { uuid },
+    include: {
+      // Включаем связанные с этой загрузкой медиапотоки
+      mediaStreams: {
+        orderBy: { type: 'asc' }, // Сортируем (видео, потом аудио, потом сабы)
+      },
+    },
+  })
+
+  if (!upload) {
+    throw createError({ statusCode: 404, message: 'Загрузка не найдена' })
+  }
+
+  let existingCompositions: any[] = []
+  // Если в запросе был передан episodeId, ищем существующие сборки для него
+  if (episodeId && !isNaN(episodeId)) {
+    existingCompositions = await prisma.composition.findMany({
+      where: { episodeId },
+      include: {
+        translator: { select: { name: true } }, // Подгружаем имя переводчика для отображения
+      },
+    })
+  }
+
+  // Возвращаем объект с данными о загрузке и связанных сборках
   return {
-    upload: foundUpload,
-    existingCompositions: existingCompositions
-  };
-});
+    upload,
+    existingCompositions,
+  }
+})

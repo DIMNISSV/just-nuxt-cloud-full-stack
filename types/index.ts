@@ -1,81 +1,141 @@
 // types/index.ts
 
-// 1. Перечисление для всех поддерживаемых внешних источников
-export enum ExternalDbType {
-  SHIKIMORI = 'shikimori',
-  IMDB = 'imdb',
-  KINOPOISK = 'kinopoisk',
-  WORLD_ART = 'world-art',
+// --- Enums, соответствующие схеме Prisma ---
+
+export enum Role {
+  USER = 'USER',
+  ADMIN = 'ADMIN'
 }
 
-// 2. Типы для загрузок
-export type UploadStatus = 'new' | 'downloading' | 'processing' | 'completed' | 'error';
-export type UploadType = 'file' | 'url' | 'torrent' | 'gdrive' | 'yt-dlp';
+export enum UploadStatus {
+  NEW = 'NEW',
+  DOWNLOADING = 'DOWNLOADING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  ERROR = 'ERROR'
+}
+
+export enum StreamType {
+  VIDEO = 'VIDEO',
+  AUDIO = 'AUDIO',
+  SUBTITLE = 'SUBTITLE'
+}
+
+// --- Модели данных, соответствующие схеме Prisma (camelCase) ---
+
+export interface User {
+  id: number;
+  username: string;
+  // passwordHash никогда не должен отправляться на клиент
+  role: Role;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface Upload {
   id: number;
   uuid: string;
   status: UploadStatus;
-  type: UploadType;
+  statusMessage: string | null;
+  type: string; // 'url', 'torrent', etc.
   source: string;
-  original_filename: string;
-  streams: MediaStream[];
-  linked_episode_id: number | null;
-  userId: number;
+  originalFilename: string | null;
   createdAt: string;
-  statusMessage?: string;
+  updatedAt: string;
+  userId: number;
+
+  // Связанные модели
+  user?: User;
+  mediaStreams: MediaStream[];
+  linkedEpisodeId: number | null;
+  linkedEpisode?: Episode;
 }
 
-// 3. Типы для контента (Сериалы, Сезоны, Эпизоды)
-export interface Episode {
-  id: number;
-  episode_number: number;
-  title: string;
-  // ID сезона из внешней БД (e.g. Shikimori ID для конкретного сезона)
-  external_ids?: { [key in ExternalDbType]?: string };
-}
-
-export interface Season {
-  season_number: number;
-  episodes: Episode[];
-}
-
-export interface Series {
-  id: number;
-  title: string;
-  poster_url: string;
-  // "Копилка" всех внешних ID, связанных с этой франшизой
-  external_ids: { [key in ExternalDbType]?: string[] };
-  seasons: Season[];
-}
-
-// 4. Остальные типы (без изменений)
 export interface MediaStream {
   id: number;
-  stream_type: 'video' | 'audio' | 'subtitle';
-  file_path: string;
-  codec_info: string;
-  uploader_username: string;
-  title?: string;
-  language?: string;
+  type: StreamType;
+  filePath: string; // Ключ объекта в S3
+  codecInfo: string | null;
+  title: string | null;
+  language: string | null;
+  createdAt: string;
+  uploadId: number;
+
+  // Связанные модели
+  upload?: Upload;
+}
+
+export interface Composition {
+  id: number;
+  name: string; // Название перевода (денормализовано из Translator)
+  audioOffsetMs: number;
+  createdAt: string;
+
+  episodeId: number;
+  videoStreamId: number;
+  audioStreamId: number;
+  translatorId: number;
+
+  // Связанные модели
+  episode?: Episode;
+  videoStream?: MediaStream;
+  audioStream?: MediaStream;
+  translator?: Translator;
+
+  // Это поле формируется на лету, его нет в БД
+  player_config?: {
+    video: string;
+    audio: { title: string, src: string }[];
+    subtitles: { title: string, src: string }[];
+  };
 }
 
 export interface Translator {
   id: number;
   name: string;
+  compositions?: Composition[];
 }
 
-export interface Composition {
+export interface Series {
   id: number;
-  name: string;
-  audio_stream_id: number;
-  video_stream_id: number;
-  player_config: {
-    video: string;
-    audio: { title: string, src: string }[];
-    subtitles: { title: string, src: string }[];
-  }
+  title: string;
+  posterUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Prisma хранит JSON как `Prisma.JsonValue`, для фронтенда это может быть Record
+  externalIds: Record<string, any> | null;
+
+  // Связанные модели
+  seasons: Season[];
 }
+
+export interface Season {
+  id: number;
+  seasonNumber: number;
+  createdAt: string;
+  seriesId: number;
+
+  // Связанные модели
+  series?: Series;
+  episodes: Episode[];
+}
+
+export interface Episode {
+  id: number;
+  episodeNumber: number;
+  title: string | null;
+  createdAt: string;
+  seasonId: number;
+  externalIds: Record<string, any> | null;
+
+  // Связанные модели
+  season?: Season;
+  compositions?: Composition[];
+  uploads?: Upload[];
+}
+
+
+// --- Вспомогательные типы для UI ---
 
 export interface EpisodeSelection {
   seriesId: number;
@@ -84,9 +144,10 @@ export interface EpisodeSelection {
   episodeNumber: number;
 }
 
-export interface User {
-  id: number;
-  username: string;
-  passwordHash: string;
-  role: 'user' | 'admin';
+// Тип для внешних БД, который используется в формах
+export enum ExternalDbType {
+  SHIKIMORI = 'shikimori',
+  IMDB = 'imdb',
+  KINOPOISK = 'kinopoisk',
+  WORLD_ART = 'world-art',
 }

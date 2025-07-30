@@ -1,13 +1,11 @@
-import { translators } from '~/server/data/db';
+// server/api/v1/translators/index.get.ts
+import prisma from '~/server/utils/prisma'
 
-export default defineEventHandler((event) => {
-  const query = getQuery(event);
-  const searchQuery = (query.q as string)?.toLowerCase();
-
-  if (searchQuery) {
-    return translators.filter(t => 
-      t.name.toLowerCase().includes(searchQuery)
-    );
-  }
-  return translators;
-});
+export default defineEventHandler(async (event) => {
+  const translators = await prisma.translator.findMany({
+    orderBy: {
+      name: 'asc',
+    },
+  })
+  return translators
+})

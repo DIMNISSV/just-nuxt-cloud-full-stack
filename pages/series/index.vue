@@ -6,7 +6,7 @@
     <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
       <div v-for="s in series" :key="s.id" class="border rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-shadow bg-white">
         <NuxtLink :to="`/series/${s.id}`">
-          <img :src="s.poster_url" :alt="s.title" class="w-full h-auto object-cover aspect-[2/3]">
+          <img :src="s.posterUrl" :alt="s.title" class="w-full h-auto object-cover aspect-[2/3]">
           <h2 class="p-2 font-semibold text-sm truncate" :title="s.title">{{ s.title }}</h2>
         </NuxtLink>
       </div>

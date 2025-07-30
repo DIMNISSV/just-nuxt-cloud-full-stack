@@ -42,7 +42,7 @@
             :class="{ 'bg-blue-50 hover:bg-blue-100': selectedUploads.includes(upload.uuid), 'hover:bg-gray-50': !selectedUploads.includes(upload.uuid) }">
             <td class="p-3">
               <input type="checkbox" :value="upload.uuid" v-model="selectedUploads"
-                :disabled="!!upload.linked_episode_id" class="rounded disabled:opacity-50 disabled:cursor-not-allowed">
+                :disabled="!!upload.linkedEpisodeId" class="rounded disabled:opacity-50 disabled:cursor-not-allowed">
             </td>
             <td class="p-3 font-mono truncate max-w-xs" :title="upload.source">{{ upload.source }}</td>
             <td class="p-3">{{ upload.type }}</td>
@@ -50,7 +50,7 @@
               <span class="px-2 py-1 text-xs rounded-full font-semibold" :class="statusClasses[upload.status]">
                 {{ upload.status }}
               </span>
-              <div v-if="upload.status === 'error'" class="mt-1">
+              <div v-if="upload.status === 'ERROR'" class="mt-1">
                 <p class="text-xs text-red-500" :title="upload.statusMessage">
                   {{ upload.statusMessage }}
                 </p>
@@ -63,10 +63,10 @@
             <td class="p-3 text-right">
               <div class="flex items-center justify-end gap-4">
                 <NuxtLink :to="`/account/uploads/${upload.uuid}`" class="text-blue-600 hover:underline" :class="{
-                  'pointer-events-none text-gray-400 opacity-50': upload.status !== 'completed' && !upload.linked_episode_id,
-                  'animate-pulse': upload.status === 'completed' && !upload.linked_episode_id
-                }" :title="upload.status !== 'completed' ? 'Настройка доступна после завершения обработки' : ''">
-                  {{ upload.linked_episode_id ? 'Управлять' : 'Настроить' }}
+                  'pointer-events-none text-gray-400 opacity-50': upload.status !== 'COMPLETED' && !upload.linkedEpisodeId,
+                  'animate-pulse': upload.status === 'COMPLETED' && !upload.linkedEpisodeId
+                }" :title="upload.status !== 'COMPLETED' ? 'Настройка доступна после завершения обработки' : ''">
+                  {{ upload.linkedEpisodeId ? 'Управлять' : 'Настроить' }}
                 </NuxtLink>
                 <button @click="handleDelete(upload.uuid)" title="Удалить загрузку"
                   class="text-gray-400 hover:text-red-600">
@@ -91,12 +91,12 @@ import type { Upload, UploadStatus } from '~/types';
 
 definePageMeta({ middleware: 'auth' });
 
-const { data: uploads, pending, error, refresh } = await useFetch<Upload[]>('/api/v1/uploads');
+const { data: uploads, pending, error, refresh } = await useFetch<Upload[]>('/api/v1/account/uploads');
 
 const selectedUploads = ref<string[]>([]);
 
 const unlinkedUploadIds = computed(() =>
-  uploads.value?.filter(u => !u.linked_episode_id).map(u => u.uuid) || []
+  uploads.value?.filter(u => !u.linkedEpisodeId).map(u => u.uuid) || []
 );
 
 const toggleSelectAll = (event: Event) => {
@@ -117,7 +117,7 @@ const goToBatchEdit = () => {
 async function handleDelete(uuid: string) {
   if (!confirm('Вы уверены, что хотите удалить эту загрузку? Связанные сборки также будут удалены.')) return;
   try {
-    await $fetch(`/api/v1/uploads/${uuid}`, { method: 'DELETE' });
+    await $fetch(`/api/v1/account/uploads/${uuid}`, { method: 'DELETE' });
     refresh();
   } catch (e) {
     alert('Ошибка при удалении загрузки');
@@ -128,7 +128,7 @@ let pollingInterval: NodeJS.Timeout | null = null;
 
 onMounted(() => {
   pollingInterval = setInterval(() => {
-    const hasActiveUploads = uploads.value?.some(u => u.status === 'new' || u.status === 'downloading' || u.status === 'processing');
+    const hasActiveUploads = uploads.value?.some(u => u.status === 'NEW' || u.status === 'DOWNLOADING' || u.status === 'PROCESSING');
     if (hasActiveUploads) {
       refresh();
     }
@@ -143,7 +143,7 @@ onUnmounted(() => {
 
 async function handleRetry(uuid: string) {
   try {
-    await $fetch(`/api/v1/uploads/${uuid}/retry`, { method: 'POST' });
+    await $fetch(`/api/v1/account/uploads/${uuid}/retry`, { method: 'POST' });
     refresh(); // Обновляем список, чтобы увидеть изменение статуса
   } catch (e) {
     alert('Не удалось повторить загрузку.');
@@ -151,10 +151,10 @@ async function handleRetry(uuid: string) {
 }
 
 const statusClasses: Record<UploadStatus, string> = {
-  new: 'bg-gray-200 text-gray-800',
-  downloading: 'bg-blue-100 text-blue-800 animate-pulse',
-  processing: 'bg-purple-100 text-purple-800 animate-pulse',
-  completed: 'bg-green-100 text-green-800',
-  error: 'bg-red-100 text-red-800',
+  NEW: 'bg-gray-200 text-gray-800',
+  DOWNLOADING: 'bg-blue-100 text-blue-800 animate-pulse',
+  PROCESSING: 'bg-purple-100 text-purple-800 animate-pulse',
+  COMPLETED: 'bg-green-100 text-green-800',
+  ERROR: 'bg-red-100 text-red-800',
 };
 </script>

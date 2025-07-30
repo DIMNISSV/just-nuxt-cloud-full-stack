@@ -9,7 +9,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
         }
 
         // Затем проверяем, является ли он админом
-        if (user.value?.role !== 'admin') {
+        if (user.value?.role !== 'ADMIN') {
             // Если не админ, показываем ошибку "Доступ запрещен"
             return abortNavigation(
                 createError({ statusCode: 403, statusMessage: 'Доступ запрещен' })

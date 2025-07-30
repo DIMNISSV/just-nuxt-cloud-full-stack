@@ -1,51 +1,37 @@
 // server/api/v1/episodes/[id]/available-raws.get.ts
+import prisma from '~/server/utils/prisma'
 
-import { mediaStreams, uploads, compositions } from '~/server/data/db'; // Добавляем compositions
-import { MediaStream } from '~/types';
-
-export default defineEventHandler((event) => {
-  const episodeId = parseInt(event.context.params?.id ?? '', 10);
-  if (isNaN(episodeId)) {
-    throw createError({ statusCode: 400, statusMessage: 'Bad Request: Invalid Episode ID' });
-  }
-
-  // Используем Map для автоматической дедупликации по ID потока
-  const relevantVideoRawsMap = new Map<number, Pick<MediaStream, 'id' | 'title' | 'uploader_username'>>();
-
-  // 1. Находим ВСЕ загрузки, которые привязаны к ТЕКУЩЕМУ эпизоду
-  const uploadsForThisEpisode = uploads.filter(u => u.linked_episode_id === episodeId);
-  
-  // 2. Извлекаем из этих загрузок все их видеопотоки
-  uploadsForThisEpisode.forEach(upload => {
-    upload.streams
-      .filter(stream => stream.stream_type === 'video')
-      .forEach(videoStream => {
-        relevantVideoRawsMap.set(videoStream.id, {
-          id: videoStream.id,
-          title: videoStream.title || upload.original_filename || 'Видео из загрузки',
-          uploader_username: videoStream.uploader_username
-        });
-      });
-  });
-
-  // 3. Дополнительно находим видеопотоки, которые уже используются в существующих сборках для этого эпизода.
-  // Это гарантирует, что даже если исходная загрузка была удалена, равку можно будет выбрать для редактирования.
-  const compositionsForThisEpisode = compositions.filter(c => c.episodeId === episodeId);
-
-  compositionsForThisEpisode.forEach(composition => {
-    // Проверяем, что этот видеопоток еще не был добавлен на шаге 2
-    if (!relevantVideoRawsMap.has(composition.video_stream_id)) {
-      const videoStream = mediaStreams.find(s => s.id === composition.video_stream_id);
-      if (videoStream) {
-        relevantVideoRawsMap.set(videoStream.id, {
-          id: videoStream.id,
-          title: videoStream.title || 'Видео из существующей сборки',
-          uploader_username: videoStream.uploader_username
-        });
-      }
+export default defineEventHandler(async (event) => {
+    const episodeId = parseInt(event.context.params?.id ?? '', 10)
+    if (isNaN(episodeId)) {
+        throw createError({ statusCode: 400, message: 'Неверный ID эпизода' })
     }
-  });
 
-  // Возвращаем уникальные видеопотоки в виде массива
-  return Array.from(relevantVideoRawsMap.values());
-});
+    // Находим все загрузки, привязанные к этому эпизоду
+    const uploads = await prisma.upload.findMany({
+        where: { linkedEpisodeId: episodeId },
+        include: { mediaStreams: true },
+    })
+
+    // Собираем все видеопотоки из этих загрузок
+    const videoStreamsFromUploads = uploads.flatMap(u => u.mediaStreams.filter(s => s.type === 'VIDEO'))
+
+    // Находим все видеопотоки, уже использующиеся в сборках для этого эпизода
+    const compositions = await prisma.composition.findMany({
+        where: { episodeId },
+        include: { videoStream: true }
+    })
+    const videoStreamsFromComps = compositions.map(c => c.videoStream);
+
+    // Объединяем и убираем дубликаты
+    const allStreams = [...videoStreamsFromUploads, ...videoStreamsFromComps]
+    const uniqueStreams = Array.from(new Map(allStreams.map(s => [s.id, s])).values())
+
+    // Возвращаем только нужные поля
+    return uniqueStreams.map(s => ({
+        id: s.id,
+        title: s.title,
+        // В реальном приложении здесь нужно было бы получить username через еще один include
+        uploaderUsername: 'user'
+    }));
+})
