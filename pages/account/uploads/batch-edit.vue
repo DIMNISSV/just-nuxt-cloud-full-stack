@@ -71,7 +71,7 @@ import draggable from 'vuedraggable';
 definePageMeta({ middleware: 'auth' });
 
 const route = useRoute();
-const { data: allUploads } = await useFetch<Upload[]>('/api/v1/uploads');
+const { data: allUploads } = await useFetch<Upload[]>('/api/v1/account/uploads');
 const uploadsToConfigure = ref<Upload[]>([]);
 onMounted(() => {
     const idsQuery = (route.query.ids as string || '').split(',').map(String).filter(Boolean);
