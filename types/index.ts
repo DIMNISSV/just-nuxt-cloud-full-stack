@@ -9,8 +9,8 @@ export enum ExternalDbType {
 }
 
 // 2. Типы для загрузок
-export type UploadStatus = 'new' | 'downloading' | 'processing' | 'completed' | 'error';
-export type UploadType = 'file' | 'url' | 'torrent' | 'gdrive' | 'yt-dlp';
+export type UploadStatus = 'NEW' | 'DOWNLOADING' | 'PROCESSING' | 'COMPLETED' | 'ERROR';
+export type UploadType = 'FILE' | 'URL' | 'TORRENT' | 'YT-DLP';
 
 export interface Upload {
   id: number;

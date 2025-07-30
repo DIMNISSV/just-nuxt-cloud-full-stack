@@ -50,7 +50,7 @@
               <span class="px-2 py-1 text-xs rounded-full font-semibold" :class="statusClasses[upload.status]">
                 {{ upload.status }}
               </span>
-              <div v-if="upload.status === 'error'" class="mt-1">
+              <div v-if="upload.status === 'ERROR'" class="mt-1">
                 <p class="text-xs text-red-500" :title="upload.statusMessage">
                   {{ upload.statusMessage }}
                 </p>
@@ -63,9 +63,9 @@
             <td class="p-3 text-right">
               <div class="flex items-center justify-end gap-4">
                 <NuxtLink :to="`/account/uploads/${upload.uuid}`" class="text-blue-600 hover:underline" :class="{
-                  'pointer-events-none text-gray-400 opacity-50': upload.status !== 'completed' && !upload.linked_episode_id,
-                  'animate-pulse': upload.status === 'completed' && !upload.linked_episode_id
-                }" :title="upload.status !== 'completed' ? 'Настройка доступна после завершения обработки' : ''">
+                  'pointer-events-none text-gray-400 opacity-50': upload.status !== 'COMPLETED' && !upload.linked_episode_id,
+                  'animate-pulse': upload.status === 'COMPLETED' && !upload.linked_episode_id
+                }" :title="upload.status !== 'COMPLETED' ? 'Настройка доступна после завершения обработки' : ''">
                   {{ upload.linked_episode_id ? 'Управлять' : 'Настроить' }}
                 </NuxtLink>
                 <button @click="handleDelete(upload.uuid)" title="Удалить загрузку"
@@ -128,7 +128,7 @@ let pollingInterval: NodeJS.Timeout | null = null;
 
 onMounted(() => {
   pollingInterval = setInterval(() => {
-    const hasActiveUploads = uploads.value?.some(u => u.status === 'new' || u.status === 'downloading' || u.status === 'processing');
+    const hasActiveUploads = uploads.value?.some(u => u.status === 'NEW' || u.status === 'DOWNLOADING' || u.status === 'PROCESSING');
     if (hasActiveUploads) {
       refresh();
     }
@@ -151,10 +151,10 @@ async function handleRetry(uuid: string) {
 }
 
 const statusClasses: Record<UploadStatus, string> = {
-  new: 'bg-gray-200 text-gray-800',
-  downloading: 'bg-blue-100 text-blue-800 animate-pulse',
-  processing: 'bg-purple-100 text-purple-800 animate-pulse',
-  completed: 'bg-green-100 text-green-800',
-  error: 'bg-red-100 text-red-800',
+  NEW: 'bg-gray-200 text-gray-800',
+  DOWNLOADING: 'bg-blue-100 text-blue-800 animate-pulse',
+  PROCESSING: 'bg-purple-100 text-purple-800 animate-pulse',
+  COMPLETED: 'bg-green-100 text-green-800',
+  ERROR: 'bg-red-100 text-red-800',
 };
 </script>
