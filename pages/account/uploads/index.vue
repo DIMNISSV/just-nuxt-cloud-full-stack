@@ -91,7 +91,7 @@ import type { Upload, UploadStatus } from '~/types';
 
 definePageMeta({ middleware: 'auth' });
 
-const { data: uploads, pending, error, refresh } = await useFetch<Upload[]>('/api/v1/uploads');
+const { data: uploads, pending, error, refresh } = await useFetch<Upload[]>('/api/v1/account/uploads');
 
 const selectedUploads = ref<string[]>([]);
 
