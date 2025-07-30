@@ -8,16 +8,25 @@ export interface UserContext {
 }
 
 export function getUserFromEvent(event: H3Event): UserContext | null {
-  const authHeader = getHeader(event, 'Authorization')
   const config = useRuntimeConfig(event)
+  let token: string | undefined
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const authHeader = getHeader(event, 'Authorization')
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7) // "Bearer ".length
+  }
+
+  if (!token) {
+    token = getCookie(event, 'auth_token')
+  }
+
+  // Если токен так и не найден, выходим
+  if (!token) {
     return null
   }
 
-  const token = authHeader.substring(7) // "Bearer ".length
-
   try {
+    // Проверяем токен с нашим секретным ключом
     const payload = jwt.verify(token, config.jwtSecret) as UserContext & { iat: number; exp: number }
     return {
       userId: payload.userId,
