@@ -4,7 +4,13 @@ import prisma from '~/server/utils/prisma'
 
 export default defineEventHandler(async (event) => {
   // Права на создание сборок может иметь любой авторизованный пользователь
-  const { episodeId, videoStreamId, audioStreamId, translatorId, audioOffsetMs } = await readBody(event)
+  const {
+    episodeId,
+    video_stream_id: videoStreamId,
+    audio_stream_id: audioStreamId,
+    translator_id: translatorId,
+    audio_offset_ms: audioOffsetMs
+  } = await readBody(event)
 
   // Валидация входных данных
   if (!episodeId || !videoStreamId || !audioStreamId || !translatorId) {

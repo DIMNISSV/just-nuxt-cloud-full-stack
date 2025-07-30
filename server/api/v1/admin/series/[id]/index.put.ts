@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, message: 'Неверный ID сериала' })
     }
 
-    const { title, posterUrl } = await readBody(event)
+    const { title, poster_url: posterUrl } = await readBody(event)
     if (!title) {
         throw createError({ statusCode: 400, message: 'Название обязательно' })
     }

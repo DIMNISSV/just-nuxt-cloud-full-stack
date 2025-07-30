@@ -8,7 +8,12 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, message: 'Неверный ID сборки' })
     }
 
-    const { videoStreamId, audioStreamId, translatorId, audioOffsetMs } = await readBody(event)
+    const {
+        video_stream_id: videoStreamId,
+        audio_stream_id: audioStreamId,
+        translator_id: translatorId,
+        audio_offset_ms: audioOffsetMs
+    } = await readBody(event)
     if (!videoStreamId || !audioStreamId || !translatorId) {
         throw createError({ statusCode: 400, message: 'Не все обязательные поля заполнены' })
     }

@@ -70,8 +70,7 @@
 
         <!-- Блок 2.2: Конструктор/Редактор -->
         <div class="p-4 border rounded-lg bg-white shadow-sm">
-          <h2 class="text-xl font-semibold mb-2">{{ editingCompositionId ? 'Редактирование сборки' : 'Создание
-            новойсборки' }}</h2>
+          <h2 class="text-xl font-semibold mb-2">{{ editingCompositionId ? 'Редактирование сборки' : 'Создание новойсборки' }}</h2>
           <div class="p-4 my-2 border rounded-md relative"
             :class="editingCompositionId ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

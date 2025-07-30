@@ -3,8 +3,12 @@ import { Prisma } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
     const seriesId = parseInt(event.context.params?.id ?? '', 10)
-    const { seasonNumber, episodeNumber, title, externalIds } = await readBody(event)
-
+    const {
+        season_number: seasonNumber,
+        episode_number: episodeNumber,
+        title,
+        external_ids: externalIds
+    } = await readBody(event)
     // Валидация...
     if (isNaN(seriesId) || !seasonNumber || !episodeNumber) {
         throw createError({ statusCode: 400, message: 'Некорректные данные' })
