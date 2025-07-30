@@ -94,22 +94,30 @@ async function handleSubmit() {
     isLoading.value = true;
     error.value = null;
     try {
-        const payload = { ...formData };
-        for (const key in payload.external_ids) {
-            if (!payload.external_ids[key as ExternalDbType]) {
-                delete payload.external_ids[key as ExternalDbType];
+        // Убираем лишнее создание payload, будем отправлять formData напрямую
+        // const payload = { ...formData }; // СТАРАЯ ЛОГИКА
+
+        // Очищаем пустые external_ids, чтобы не засорять БД
+        for (const key in formData.external_ids) {
+            if (!formData.external_ids[key as ExternalDbType]) {
+                delete formData.external_ids[key as ExternalDbType];
             }
         }
 
         if (isEditing.value && props.initialData) {
-            await $fetch(`/api/v1/episodes/${props.initialData.id}`, {
+            // При редактировании отправляем только то, что можно менять
+            await $fetch(`/api/v1/admin/episodes/${props.initialData.id}`, {
                 method: 'PUT',
-                body: { title: payload.title, external_ids: payload.external_ids }
+                body: {
+                    title: formData.title,
+                    external_ids: formData.external_ids
+                }
             });
         } else {
+            // ★ ИСПРАВЛЕНИЕ: При создании отправляем всю форму целиком
             await $fetch(`/api/v1/admin/series/${props.seriesId}/episodes`, {
                 method: 'POST',
-                body: payload
+                body: formData // Отправляем все данные: season_number, episode_number, title и т.д.
             });
         }
         emit('submitted');

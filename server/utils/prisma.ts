@@ -1,7 +1,8 @@
 // server/utils/prisma.ts
+
 import { PrismaClient } from '@prisma/client'
 
-// Предотвращаем создание множества инстансов PrismaClient в режиме разработки
+// Предотвращаем создание множества инстансов PrismaClient в режиме разработки с HMR
 declare global {
     // eslint-disable-next-line no-var
     var prisma: PrismaClient | undefined

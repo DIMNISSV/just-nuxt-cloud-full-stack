@@ -63,7 +63,7 @@ const closeModal = () => { isModalOpen.value = false; };
 const handleSubmit = async () => {
     try {
         if (editingTranslator.value) {
-            await $fetch(`/api/v1/translators/${editingTranslator.value.id}`, {
+            await $fetch(`/api/v1/admin/translators/${editingTranslator.value.id}`, {
                 method: 'PUT',
                 body: form 
             });
@@ -78,7 +78,7 @@ const handleSubmit = async () => {
 const handleDelete = async (id: number) => {
     if (!confirm('Вы уверены?')) return;
     try {
-        await $fetch(`/api/v1/translators/${id}`, { method: 'DELETE' });
+        await $fetch(`/api/v1/admin/translators/${id}`, { method: 'DELETE' });
         refresh();
     } catch (e) { alert('Ошибка удаления'); }
 };
