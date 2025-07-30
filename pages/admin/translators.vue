@@ -68,7 +68,7 @@ const handleSubmit = async () => {
                 body: form 
             });
         } else {
-            await $fetch('/api/v1/translators', { method: 'POST', body: form });
+            await $fetch('/api/v1/admin/translators', { method: 'POST', body: form });
         }
         refresh();
         closeModal();

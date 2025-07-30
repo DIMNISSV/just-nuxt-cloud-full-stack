@@ -81,7 +81,7 @@ async function handleSubmit() {
     // но на реальном бэкенде это будет иметь значение.
     const apiType = ['gdrive', 'yt-dlp'].includes(type.value) ? 'url' : type.value;
 
-    await $fetch('/api/v1/uploads', {
+    await $fetch('/api/v1/account/uploads', {
       method: 'POST',
       body: {
         type: type.value,

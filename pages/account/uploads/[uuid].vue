@@ -70,7 +70,8 @@
 
         <!-- Блок 2.2: Конструктор/Редактор -->
         <div class="p-4 border rounded-lg bg-white shadow-sm">
-          <h2 class="text-xl font-semibold mb-2">{{ editingCompositionId ? 'Редактирование сборки' : 'Создание новойсборки' }}</h2>
+          <h2 class="text-xl font-semibold mb-2">{{ editingCompositionId ? 'Редактирование сборки' : 'Создание
+            новойсборки' }}</h2>
           <div class="p-4 my-2 border rounded-md relative"
             :class="editingCompositionId ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -162,29 +163,29 @@ const { data: uploadData, pending, error, refresh } = await useAsyncData<{ uploa
 );
 
 const videoStreamFromCurrentUpload = computed(() => {
-    return uploadData.value?.upload.streams.find(s => s.stream_type === 'video');
+  return uploadData.value?.upload.streams.find(s => s.stream_type === 'video');
 });
 
 const allAvailableVideoStreams = computed(() => {
-    // // Начинаем со списка "чужих" равок, которые пришли по API
-    // // В будущем API должен будет возвращать только релевантные равки (например, от того же сериала)
-    // const otherRaws = [...allVideoStreams.value]; 
+  // // Начинаем со списка "чужих" равок, которые пришли по API
+  // // В будущем API должен будет возвращать только релевантные равки (например, от того же сериала)
+  // const otherRaws = [...allVideoStreams.value]; 
 
-    // const streams = [...otherRaws];
+  // const streams = [...otherRaws];
 
-    // // Добавляем равку из текущей загрузки в начало списка, если она есть
-    // if (videoStreamFromCurrentUpload.value) {
-    //     // Проверяем, что ее еще нет в списке (на всякий случай)
-    //     if (!streams.some(s => s.id === videoStreamFromCurrentUpload.value!.id)) {
-    //         streams.unshift({
-    //             id: videoStreamFromCurrentUpload.value.id,
-    //             title: videoStreamFromCurrentUpload.value.title || 'Видео из текущей загрузки',
-    //             uploader_username: videoStreamFromCurrentUpload.value.uploader_username
-    //         });
-    //     }
-    // }
-    
-    return allVideoStreams.value;
+  // // Добавляем равку из текущей загрузки в начало списка, если она есть
+  // if (videoStreamFromCurrentUpload.value) {
+  //     // Проверяем, что ее еще нет в списке (на всякий случай)
+  //     if (!streams.some(s => s.id === videoStreamFromCurrentUpload.value!.id)) {
+  //         streams.unshift({
+  //             id: videoStreamFromCurrentUpload.value.id,
+  //             title: videoStreamFromCurrentUpload.value.title || 'Видео из текущей загрузки',
+  //             uploader_username: videoStreamFromCurrentUpload.value.uploader_username
+  //         });
+  //     }
+  // }
+
+  return allVideoStreams.value;
 });
 
 
@@ -264,7 +265,7 @@ async function deleteComposition(compositionId: number) {
   if (!confirm('Вы уверены, что хотите удалить эту сборку?')) return;
   saveResult.value = null;
   try {
-    await $fetch(`/api/v1/compositions/${compositionId}`, { method: 'DELETE' });
+    await $fetch(`/api/v1/account/compositions/${compositionId}`, { method: 'DELETE' });
     saveResult.value = { message: 'Сборка успешно удалена.' };
     if (uploadData.value?.upload.linked_episode_id) {
       await fetchEpisodeData(uploadData.value.upload.linked_episode_id);
@@ -280,14 +281,14 @@ async function submitForm() {
   saveResult.value = null;
   try {
     if (editingCompositionId.value) {
-      await $fetch(`/api/v1/compositions/${editingCompositionId.value}`, { method: 'PUT', body: form });
+      await $fetch(`/api/v1/account/compositions/${editingCompositionId.value}`, { method: 'PUT', body: form });
       saveResult.value = { message: 'Сборка успешно обновлена.' };
     } else {
       const payload = {
-        episode_identity: { episodeId: uploadData.value.upload.linked_episode_id },
-        compositions: [form],
+        episodeId: uploadData.value?.upload.linked_episode_id,
+        ...form
       };
-      await $fetch(`/api/v1/account/uploads/${uuid}/configure`, { method: 'PUT', body: payload });
+      await $fetch(`/api/v1/account/compositions`, { method: 'POST', body: payload });
       saveResult.value = { message: 'Новая сборка успешно создана.' };
     }
     resetForm();

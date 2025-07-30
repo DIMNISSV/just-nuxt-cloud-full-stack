@@ -84,7 +84,7 @@ const onFormSubmitted = () => {
 const handleDelete = async (episodeId: number) => {
     if (!confirm('Вы уверены, что хотите удалить этот эпизод?')) return;
     try {
-        await $fetch(`/api/v1/episodes/${episodeId}`, { method: 'DELETE' });
+        await $fetch(`/api/v1/admin/episodes/${episodeId}`, { method: 'DELETE' });
         refresh();
     } catch (e) {
         alert('Ошибка при удалении эпизода');
