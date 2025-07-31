@@ -10,7 +10,9 @@
             "name": "Run nuxt",
             "runtimeExecutable": "nuxt",
             "cwd": "${workspaceFolder}",
-            "args": ["dev"]
+            "args": [
+                "dev"
+            ]
         }
         // {
         //     "type": "chrome",
