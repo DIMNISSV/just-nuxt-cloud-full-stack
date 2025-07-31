@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, HeadObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, HeadObjectCommand, CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -92,4 +92,65 @@ export async function moveObject(sourceKey: string, destinationKey: string): Pro
         Key: sourceKey,
     });
     await s3Client.send(deleteCommand);
+}
+
+/**
+ * Удаляет объект из S3.
+ * @param s3Key - Ключ объекта для удаления.
+ * @returns Промис, который разрешается после успешного удаления.
+ */
+export async function deleteObject(s3Key: string): Promise<void> {
+    const command = new DeleteObjectCommand({
+        Bucket: BUCKET,
+        Key: s3Key,
+    });
+    try {
+        await s3Client.send(command);
+        console.log(`[S3] Объект успешно удален: ${s3Key}`);
+    } catch (error) {
+        // Мы не хотим, чтобы ошибка удаления из S3 (например, если файла уже нет)
+        // ломала весь запрос. Мы просто логируем ее.
+        console.error(`[S3] Ошибка при удалении объекта ${s3Key}:`, error);
+    }
+}
+
+/**
+ * Массово удаляет объекты из S3. Разбивает большой массив ключей на чанки по 1000.
+ * @param keys - Массив ключей S3 для удаления.
+ * @returns Промис, который разрешается после успешного выполнения всех запросов на удаление.
+ */
+export async function deleteMultipleObjects(keys: string[]): Promise<void> {
+    if (keys.length === 0) {
+        return;
+    }
+
+    // S3 позволяет удалять до 1000 объектов за один запрос.
+    // Разбиваем массив ключей на чанки (куски) по 1000.
+    const chunks: string[][] = [];
+    for (let i = 0; i < keys.length; i += 1000) {
+        chunks.push(keys.slice(i, i + 1000));
+    }
+
+    try {
+        // Выполняем запросы на удаление для каждого чанка
+        for (const chunk of chunks) {
+            const deleteCommand = new DeleteObjectsCommand({
+                Bucket: BUCKET,
+                Delete: {
+                    Objects: chunk.map(key => ({ Key: key })),
+                    Quiet: false, // Устанавливаем в false, чтобы получать отчет об ошибках, если они есть
+                },
+            });
+            const output = await s3Client.send(deleteCommand);
+
+            // Логируем ошибки, если они произошли при удалении отдельных объектов
+            if (output.Errors && output.Errors.length > 0) {
+                console.error('[S3] Ошибки при массовом удалении объектов:', output.Errors);
+            }
+        }
+        console.log(`[S3] Запрос на массовое удаление ${keys.length} объектов отправлен.`);
+    } catch (error) {
+        // Логируем критическую ошибку всего запроса (например, проблемы с доступом)
+        console.error('[S3] Критическая ошибка при массовом удалении:', error);
+    }
 }
