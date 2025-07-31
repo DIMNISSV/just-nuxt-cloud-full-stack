@@ -11,7 +11,7 @@
 
         <div v-if="isOpen" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 text-gray-800">
             <NuxtLink to="/account/profile" class="block px-4 py-2 text-sm hover:bg-gray-100">Профиль</NuxtLink>
-            <NuxtLink to="/account/uploads" class="block px-4 py-2 text-sm hover:bg-gray-100">Мои загрузки</NuxtLink>
+            <NuxtLink to="/account/storage" class="block px-4 py-2 text-sm hover:bg-gray-100">Моё хранилище</NuxtLink>
             <div class="border-t my-1"></div>
             <button @click="handleLogout"
                 class="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">

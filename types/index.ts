@@ -7,12 +7,16 @@ export enum Role {
   ADMIN = 'ADMIN'
 }
 
-export enum UploadStatus {
-  NEW = 'NEW',
-  DOWNLOADING = 'DOWNLOADING',
+export enum AssetStatus {
+  PENDING = 'PENDING',
   PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
+  AVAILABLE = 'AVAILABLE',
   ERROR = 'ERROR'
+}
+
+export enum AssetType {
+  MEDIA_SOURCE = 'MEDIA_SOURCE',
+  PERSONAL = 'PERSONAL'
 }
 
 export enum StreamType {
@@ -21,68 +25,91 @@ export enum StreamType {
   SUBTITLE = 'SUBTITLE'
 }
 
-// --- Модели данных, соответствующие схеме Prisma (camelCase) ---
+// --- Модели данных, соответствующие схеме Prisma ---
 
 export interface User {
   id: number;
   username: string;
-  // passwordHash никогда не должен отправляться на клиент
   role: Role;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface Upload {
+export interface FileAsset {
   id: number;
   uuid: string;
-  status: UploadStatus;
-  statusMessage: string | null;
-  type: string; // 'url', 'torrent', etc.
-  source: string;
-  originalFilename: string | null;
+  originalFilename: string;
+  s3Key: string;
+  sizeBytes: number; // Prisma Client преобразует BigInt в number по умолчанию
+  mimeType: string;
+  status: AssetStatus;
+  assetType: AssetType;
+  createdAt: string;
+  userId: number;
+
+  mediaFileMeta?: MediaFileMeta;
+  personalFileMeta?: PersonalFileMeta;
+}
+
+export interface MediaFileMeta {
+  id: number;
+  assetId: number;
+  asset?: FileAsset;
+  derivedStreams: MediaStream[];
+  linkedEpisodeId: number | null;
+  linkedEpisode?: Episode;
+}
+
+export interface PersonalFileMeta {
+  id: number;
+  assetId: number;
+  asset?: FileAsset;
+  folderId: number | null;
+  folder?: PersonalFolder;
+}
+
+export interface PersonalFolder {
+  id: number;
+  name: string;
   createdAt: string;
   updatedAt: string;
   userId: number;
+  parentId: number | null;
 
-  // Связанные модели
   user?: User;
-  mediaStreams: MediaStream[];
-  linkedEpisodeId: number | null;
-  linkedEpisode?: Episode;
+  parent?: PersonalFolder;
+  children?: PersonalFolder[];
+  files?: PersonalFileMeta[];
 }
 
 export interface MediaStream {
   id: number;
   type: StreamType;
-  filePath: string; // Ключ объекта в S3
+  filePath: string;
+  qualityLabel: string;
   codecInfo: string | null;
-  title: string | null;
   language: string | null;
-  createdAt: string;
-  uploadId: number;
-
-  // Связанные модели
-  upload?: Upload;
+  sourceMediaFileId: number;
 }
 
 export interface Composition {
   id: number;
-  name: string; // Название перевода (денормализовано из Translator)
+  name: string;
   audioOffsetMs: number;
   createdAt: string;
 
   episodeId: number;
   videoStreamId: number;
   audioStreamId: number;
-  translatorId: number;
+  subtitleStreamId: number | null; // Добавлено для будущей поддержки
+  translatorId: number | null;
 
-  // Связанные модели
   episode?: Episode;
   videoStream?: MediaStream;
   audioStream?: MediaStream;
+  subtitleStream?: MediaStream;
   translator?: Translator;
 
-  // Это поле формируется на лету, его нет в БД
   player_config?: {
     video: string;
     audio: { title: string, src: string }[];
@@ -102,10 +129,7 @@ export interface Series {
   posterUrl: string | null;
   createdAt: string;
   updatedAt: string;
-  // Prisma хранит JSON как `Prisma.JsonValue`, для фронтенда это может быть Record
   externalIds: Record<string, any> | null;
-
-  // Связанные модели
   seasons: Season[];
 }
 
@@ -114,8 +138,6 @@ export interface Season {
   seasonNumber: number;
   createdAt: string;
   seriesId: number;
-
-  // Связанные модели
   series?: Series;
   episodes: Episode[];
 }
@@ -127,15 +149,13 @@ export interface Episode {
   createdAt: string;
   seasonId: number;
   externalIds: Record<string, any> | null;
-
-  // Связанные модели
   season?: Season;
   compositions?: Composition[];
-  uploads?: Upload[];
+  linkedMediaFiles?: MediaFileMeta[];
 }
 
 
-// --- Вспомогательные типы для UI ---
+// --- Вспомогательные типы для API и UI ---
 
 export interface EpisodeSelection {
   seriesId: number;
@@ -144,10 +164,33 @@ export interface EpisodeSelection {
   episodeNumber: number;
 }
 
-// Тип для внешних БД, который используется в формах
 export enum ExternalDbType {
   SHIKIMORI = 'shikimori',
   IMDB = 'imdb',
   KINOPOISK = 'kinopoisk',
   WORLD_ART = 'world-art',
+}
+
+// Полезно для UI, чтобы различать типы элементов в файловом менеджере
+export type StorageItem = (PersonalFolder & { itemType: 'folder' }) | (PersonalFileMeta & { itemType: 'file' });
+
+// Тип для входных данных при запросе pre-signed URL
+export interface RequestUploadPayload {
+  filename: string;
+  sizeBytes: number;
+  mimeType: string;
+  assetType: AssetType;
+  // Дополнительные метаданные в зависимости от assetType
+  folderId?: number; // Для PERSONAL
+}
+
+// Тип для ответа с pre-signed URL
+export interface RequestUploadResponse {
+  assetId: number;
+  uploadUrl: string; // Pre-signed URL для PUT-запроса
+}
+
+// Тип для запроса завершения загрузки
+export interface FinalizeUploadPayload {
+  // Ничего не нужно, ID ассета берется из URL
 }

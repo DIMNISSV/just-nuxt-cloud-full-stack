@@ -20,7 +20,7 @@
                             <NuxtLink to="/account/profile" class="hover:text-white">Профиль</NuxtLink>
                         </li>
                         <li>
-                            <NuxtLink to="/account/uploads" class="hover:text-white">Мои загрузки</NuxtLink>
+                            <NuxtLink to="/account/storage" class="hover:text-white">Моё хранилище</NuxtLink>
                         </li>
                     </ul>
                 </div>
