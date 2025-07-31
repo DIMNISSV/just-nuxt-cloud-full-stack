@@ -1,19 +1,30 @@
 import { transmission } from '~/server/utils/transmission'
+import { addWatchMetadataJob } from '~/server/utils/queue'
 
 export default defineEventHandler(async (event) => {
     const { magnetLink } = await readBody(event)
     if (!magnetLink) throw createError({ statusCode: 400, message: 'magnetLink is required' })
 
     try {
-        const result = await transmission.add(magnetLink, { paused: true })
+        // 1. Добавляем торрент и сразу запускаем его (`paused: false` по умолчанию)
+        const result = await transmission.add(magnetLink)
 
-        // Transmission может вернуть либо `torrent-added` либо `torrent-duplicate`
         const torrentInfo = result['torrent-added'] || result['torrent-duplicate'];
-        if (!torrentInfo) throw new Error('Не удалось добавить торрент в Transmission')
+        if (!torrentInfo) {
+            console.error('Неожиданный ответ от Transmission:', result);
+            throw new Error('Не удалось добавить торрент в Transmission');
+        }
 
+        // 2. Сразу ставим задачу-сторожа в очередь, чтобы он остановил скачивание данных
+        await addWatchMetadataJob({
+            torrentId: torrentInfo.id,
+            hashString: torrentInfo.hashString
+        })
+
+        // 3. Возвращаем результат клиенту, чтобы он мог начать опрашивать /files
         return {
             id: torrentInfo.id,
-            hashString: torrentInfo.hashString, // Это наш infoHash
+            hashString: torrentInfo.hashString,
             name: torrentInfo.name,
         }
     } catch (e: any) {

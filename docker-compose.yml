@@ -59,7 +59,6 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
-      - TRANSMISSION_WEB_HOME=/combustion-release/ # Более современный UI
     # - USER=username # Опционально, для защиты
     # - PASS=password # Опционально, для защиты
     volumes:
@@ -68,8 +67,8 @@ services:
       - ./transmission/watch:/watch # Папка для .torrent файлов
     ports:
       - 9091:9091 # RPC API
-      - 51413:51413 # Входящие peer-соединения
-      - 51413:51413/udp
+      - 51250:51250 # Входящие peer-соединения
+      - 51250:51250/udp
     restart: unless-stopped
 
 volumes:

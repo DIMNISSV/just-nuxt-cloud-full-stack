@@ -76,9 +76,9 @@ export async function addDownloadUrlJob(data: DownloadUrlJobData) {
 const processTorrentQueueName = 'process-torrent-job'
 
 export interface ProcessTorrentJobData {
-    magnetLink: string;
-    infoHash: string;
-    filesToDownload: number[]; // Массив индексов файлов, которые нужно скачать
+    torrentId: number; // ID в Transmission
+    hashString: string;
+    filesToProcess: { index: number, name: string }[]; // Файлы, которые нужно отслеживать и обработать
     userId: number;
     assetType: AssetType;
     folderId?: number;
@@ -94,9 +94,35 @@ export const processTorrentQueue = new Queue<ProcessTorrentJobData>(processTorre
 
 export async function addTorrentJob(data: ProcessTorrentJobData) {
     await processTorrentQueue.add('process-torrent', data, {
-        jobId: `torrent-${data.infoHash}`, // Используем infoHash для уникальности
+        jobId: `torrent-${data.hashString}`, // Используем infoHash для уникальности
         removeOnComplete: true,
         removeOnFail: 1000,
     })
-    console.log(`[Queue] Добавлена задача в очередь '${processTorrentQueueName}' для infoHash: ${data.infoHash}`)
+    console.log(`[Queue] Добавлена задача в очередь '${processTorrentQueueName}' для infoHash: ${data.hashString}`)
+}
+
+
+// === ОЧЕРЕДЬ ДЛЯ СЛЕЖЕНИЯ ЗА МЕТАДАННЫМИ ===
+const watchMetadataQueueName = 'watch-metadata-job'
+
+export interface WatchMetadataJobData {
+    torrentId: number; // ID в Transmission
+    hashString: string;
+}
+
+export const watchMetadataQueue = new Queue<WatchMetadataJobData>(watchMetadataQueueName, {
+    connection,
+    defaultJobOptions: {
+        attempts: 5, // Можно сделать побольше попыток
+        backoff: { type: 'fixed', delay: 2000 }, // Проверять каждые 2 секунды
+        removeOnComplete: true,
+        removeOnFail: false, // Неудачные задачи не так важны
+    },
+});
+
+export async function addWatchMetadataJob(data: WatchMetadataJobData) {
+    await watchMetadataQueue.add('watch-metadata', data, {
+        jobId: `watch-${data.hashString}`,
+    })
+    console.log(`[Queue] Добавлена задача в очередь '${watchMetadataQueueName}' для hashString: ${data.hashString}`)
 }

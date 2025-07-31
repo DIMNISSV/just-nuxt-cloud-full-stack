@@ -8,7 +8,7 @@ import prisma from './server/utils/prisma'
 import { uploadToS3 } from './server/utils/s3'
 import { appConfig, runtimeConfig } from './config'
 import { AssetType, Prisma } from '@prisma/client'
-import type { DownloadUrlJobData, ProcessMediaJobData } from './server/utils/queue'
+import type { DownloadUrlJobData, ProcessMediaJobData, WatchMetadataJobData } from './server/utils/queue'
 import { addMediaJob } from './server/utils/queue'
 
 // Установка: npm install mime-types @types/mime-types
@@ -110,11 +110,55 @@ const processMediaWorker = new Worker<ProcessMediaJobData>('process-media-job', 
     console.log(`[MediaWorker Stub] Задача ${job.id} 'завершена'.`);
 }, { connection });
 
+// === ЗАДАЧА-СТОРОЖ ЗА МЕТАДАННЫМИ ===
+const watchMetadataWorker = new Worker<WatchMetadataJobData>(
+    'watch-metadata-job',
+    async (job) => {
+        const { torrentId, hashString } = job.data;
+        console.log(`[WatcherWorker] Проверка метаданных для торрента ID: ${torrentId}`);
+
+        const { torrents } = await transmission.get(torrentId, ['metadataPercentComplete', 'files']);
+
+        if (!torrents || torrents.length === 0) {
+            console.warn(`[WatcherWorker] Торрент ID ${torrentId} не найден в Transmission. Задача отменена.`);
+            return; // Торрент могли удалить, задача больше не актуальна
+        }
+
+        const torrent = torrents[0];
+
+        if (torrent.metadataPercentComplete < 1) {
+            // Метаданные еще не готовы, перевыбрасываем ошибку,
+            // чтобы BullMQ попробовал снова через 2 секунды (согласно настройкам backoff)
+            throw new Error(`Метаданные для ${hashString} еще не готовы (${torrent.metadataPercentComplete * 100}%). Повторная попытка...`);
+        }
+
+        // МЕТАДАННЫЕ ГОТОВЫ
+        console.log(`[WatcherWorker] Метаданные для ${hashString} получены!`);
+
+        // Получаем список всех индексов файлов
+        const allFileIndexes = torrent.files.map((_: any, index: number) => index);
+
+        // Отправляем команду остановить скачивание всех файлов
+        await transmission.set(torrentId, {
+            'files-unwanted': allFileIndexes
+        });
+
+        console.log(`[WatcherWorker] Скачивание ВСЕХ файлов для торрента ${hashString} остановлено. Ожидание выбора пользователя.`);
+        // На этом работа "сторожа" завершена. Он успешно выполнится и будет удален из очереди.
+    },
+    { connection }
+);
+
+
 
 // --- Логирование событий ---
 downloadUrlWorker.on('completed', job => console.log(`[Queue] Завершена задача 'download-url' #${job.id}`));
 downloadUrlWorker.on('failed', (job, err) => console.error(`[Queue] Ошибка в задаче 'download-url' #${job?.id}: ${err.message}`));
 processMediaWorker.on('completed', job => console.log(`[Queue] Завершена задача 'process-media' #${job.id}`));
 processMediaWorker.on('failed', (job, err) => console.error(`[Queue] Ошибка в задаче 'process-media' #${job?.id}: ${err.message}`));
+
+watchMetadataWorker.on('completed', job => console.log(`[Queue] Завершена задача 'watch-metadata' #${job.id}`));
+watchMetadataWorker.on('failed', (job, err) => console.error(`[Queue] Ошибка в задаче 'watch-metadata' #${job?.id}: ${err.message}`));
+
 
 console.log('🚀 Воркеры запущены и готовы к работе...');
