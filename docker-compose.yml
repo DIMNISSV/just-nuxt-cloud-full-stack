@@ -51,6 +51,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: jm-transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - TRANSMISSION_WEB_HOME=/combustion-release/ # Более современный UI
+    # - USER=username # Опционально, для защиты
+    # - PASS=password # Опционально, для защиты
+    volumes:
+      - ./transmission/config:/config
+      - ./transmission/downloads:/downloads # Папка, куда будут скачиваться торренты
+      - ./transmission/watch:/watch # Папка для .torrent файлов
+    ports:
+      - 9091:9091 # RPC API
+      - 51413:51413 # Входящие peer-соединения
+      - 51413:51413/udp
+    restart: unless-stopped
 
 volumes:
   postgres_data:

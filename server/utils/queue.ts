@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq'
 import { runtimeConfig } from '../../config' // Импортируем нашу общую конфигурацию
+import { AssetType } from '@prisma/client'
 
 // === НОВАЯ ОЧЕРЕДЬ ДЛЯ ОБРАБОТКИ МЕДИА ===
 const processMediaQueueName = 'process-media-job'
@@ -70,4 +71,32 @@ export async function addDownloadUrlJob(data: DownloadUrlJobData) {
         removeOnFail: 1000,
     })
     console.log(`[Queue] Добавлена задача в очередь '${downloadUrlQueueName}' для assetId: ${data.assetId}`)
+}
+
+const processTorrentQueueName = 'process-torrent-job'
+
+export interface ProcessTorrentJobData {
+    magnetLink: string;
+    infoHash: string;
+    filesToDownload: number[]; // Массив индексов файлов, которые нужно скачать
+    userId: number;
+    assetType: AssetType;
+    folderId?: number;
+}
+
+export const processTorrentQueue = new Queue<ProcessTorrentJobData>(processTorrentQueueName, {
+    connection,
+    defaultJobOptions: {
+        attempts: 2, // Меньше попыток для торрентов
+        backoff: { type: 'exponential', delay: 10000 },
+    },
+});
+
+export async function addTorrentJob(data: ProcessTorrentJobData) {
+    await processTorrentQueue.add('process-torrent', data, {
+        jobId: `torrent-${data.infoHash}`, // Используем infoHash для уникальности
+        removeOnComplete: true,
+        removeOnFail: 1000,
+    })
+    console.log(`[Queue] Добавлена задача в очередь '${processTorrentQueueName}' для infoHash: ${data.infoHash}`)
 }

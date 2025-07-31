@@ -34,5 +34,9 @@ export const runtimeConfig = {
     },
     public: {
         apiBase: '/api/v1',
-    }
+    },
+    transmission: {
+        host: process.env.TRANSMISSION_HOST || '127.0.0.1',
+        port: process.env.TRANSMISSION_PORT ? parseInt(process.env.TRANSMISSION_PORT, 10) : 9091,
+    },
 }
