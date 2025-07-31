@@ -10,7 +10,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Модель пользователя
+// ======================================================================
+// 1. БАЗОВЫЕ И АУТЕНТИФИКАЦИОННЫЕ МОДЕЛИ
+// ======================================================================
+
 model User {
   id           Int      @id @default(autoincrement())
   username     String   @unique
@@ -18,7 +21,10 @@ model User {
   role         Role     @default(USER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  uploads      Upload[]
+
+  // Связи
+  fileAssets   FileAsset[]
+  folders      PersonalFolder[]
 }
 
 enum Role {
@@ -26,46 +32,110 @@ enum Role {
   ADMIN
 }
 
-// Модель загрузки (исходный файл)
-model Upload {
-  id                Int           @id @default(autoincrement())
-  uuid              String        @unique @default(uuid())
-  status            UploadStatus  @default(NEW)
-  statusMessage     String?
-  type              String // url, torrent, etc.
-  source            String // URL, magnet link
-  originalFilename  String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  user              User          @relation(fields: [userId], references: [id])
-  userId            Int
-  mediaStreams      MediaStream[]
-  linkedEpisodeId   Int? // ID эпизода, к которому привязана вся загрузка (для контекста)
-  linkedEpisode     Episode?      @relation(fields: [linkedEpisodeId], references: [id], onDelete: SetNull)
+// ======================================================================
+// 2. УНИФИЦИРОВАННАЯ СИСТЕМА ФАЙЛОВ (FileAsset) - ЯДРО СИСТЕМЫ
+// ======================================================================
+
+// Центральная модель для ЛЮБОГО файла в системе
+model FileAsset {
+  id               Int         @id @default(autoincrement())
+  uuid             String      @unique @default(uuid())
+  originalFilename String
+  s3Key            String      @unique
+  sizeBytes        BigInt
+  mimeType         String
+  status           AssetStatus @default(PENDING)
+  
+  createdAt        DateTime    @default(now())
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           Int
+
+  assetType        AssetType
+  
+  mediaFileMeta    MediaFileMeta?
+  personalFileMeta PersonalFileMeta?
+
+  @@map("file_assets")
 }
 
-enum UploadStatus {
-  NEW
-  DOWNLOADING
+enum AssetStatus {
+  PENDING
   PROCESSING
-  COMPLETED
+  AVAILABLE
   ERROR
 }
 
-// Модель медиапотока (отдельный файл видео/аудио/субтитров)
+enum AssetType {
+  MEDIA_SOURCE
+  PERSONAL
+}
+
+// Метаданные для МЕДИА-файла
+model MediaFileMeta {
+  id              Int      @id @default(autoincrement())
+  asset           FileAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  assetId         Int      @unique
+  
+  derivedStreams  MediaStream[]
+  
+  linkedEpisodeId Int?
+  linkedEpisode   Episode? @relation(fields: [linkedEpisodeId], references: [id], onDelete: SetNull)
+
+  @@map("media_file_meta")
+}
+
+// Метаданные для ЛИЧНОГО файла
+model PersonalFileMeta {
+  id         Int      @id @default(autoincrement())
+  asset      FileAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  assetId    Int      @unique
+
+  folderId   Int?
+  folder     PersonalFolder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@map("personal_file_meta")
+}
+
+// Папка в личном хранилище
+model PersonalFolder {
+  id         Int      @id @default(autoincrement())
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+
+  parentId   Int?
+  parent     PersonalFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children   PersonalFolder[] @relation("FolderHierarchy")
+
+  files      PersonalFileMeta[]
+
+  @@unique([userId, parentId, name])
+  @@map("personal_folders")
+}
+
+// ======================================================================
+// 3. МЕДИА-ЧАСТЬ (Сериалы, Эпизоды, Сборки)
+// ======================================================================
+
 model MediaStream {
-  id                Int           @id @default(autoincrement())
+  id                Int      @id @default(autoincrement())
   type              StreamType
-  filePath          String // Ключ объекта в S3
+  filePath          String
+  qualityLabel      String
   codecInfo         String?
-  title             String?
   language          String?
-  createdAt         DateTime      @default(now())
-  upload            Upload        @relation(fields: [uploadId], references: [id], onDelete: Cascade)
-  uploadId          Int
-  // Связи для сборок (композиций)
+  
+  sourceMediaFile   MediaFileMeta @relation(fields: [sourceMediaFileId], references: [id], onDelete: Cascade)
+  sourceMediaFileId Int
+
   compositionsAsVideo Composition[] @relation("VideoSource")
   compositionsAsAudio Composition[] @relation("AudioSource")
+  compositionsAsSub   Composition[] @relation("SubtitleSource")
+
+  @@map("media_streams")
 }
 
 enum StreamType {
@@ -74,30 +144,38 @@ enum StreamType {
   SUBTITLE
 }
 
-// Модель "Сборки" или "Перевода"
 model Composition {
   id            Int         @id @default(autoincrement())
-  name          String // Название перевода, например "TVShows"
-  audioOffsetMs Int         @default(0) // Задержка аудио
+  name          String
+  audioOffsetMs Int         @default(0)
   createdAt     DateTime    @default(now())
+  
   episode       Episode     @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   episodeId     Int
+
   videoStream   MediaStream @relation("VideoSource", fields: [videoStreamId], references: [id], onDelete: Cascade)
   videoStreamId Int
-  audioStream   MediaStream @relation("AudioSource",fields: [audioStreamId], references: [id], onDelete: Cascade)
+
+  audioStream   MediaStream @relation("AudioSource", fields: [audioStreamId], references: [id], onDelete: Cascade)
   audioStreamId Int
-  translator    Translator  @relation(fields: [translatorId], references: [id], onDelete: Restrict)
-  translatorId  Int
+
+  subtitleStream  MediaStream? @relation("SubtitleSource", fields: [subtitleStreamId], references: [id], onDelete: SetNull)
+  subtitleStreamId Int?
+
+  translator    Translator? @relation(fields: [translatorId], references: [id], onDelete: SetNull) // onDelete: SetNull, чтобы удаление переводчика не ломало сборки
+  translatorId  Int?
+
+  @@map("compositions")
 }
 
-// Модель переводчика/студии
 model Translator {
   id           Int           @id @default(autoincrement())
   name         String        @unique
   compositions Composition[]
+
+  @@map("translators")
 }
 
-// Модель Сериала (франшизы)
 model Series {
   id         Int       @id @default(autoincrement())
   title      String    @unique
@@ -105,10 +183,11 @@ model Series {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   seasons    Season[]
-  externalIds Json? // "Копилка" внешних ID
+  externalIds Json?
+
+  @@map("series")
 }
 
-// Модель Сезона
 model Season {
   id            Int      @id @default(autoincrement())
   seasonNumber  Int
@@ -117,10 +196,10 @@ model Season {
   seriesId      Int
   episodes      Episode[]
 
-  @@unique([seriesId, seasonNumber]) // Номер сезона должен быть уникальным в рамках одного сериала
+  @@unique([seriesId, seasonNumber])
+  @@map("seasons")
 }
 
-// Модель Эпизода
 model Episode {
   id             Int           @id @default(autoincrement())
   episodeNumber  Int
@@ -128,9 +207,12 @@ model Episode {
   createdAt      DateTime      @default(now())
   season         Season        @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   seasonId       Int
-  compositions   Composition[]
-  uploads        Upload[] // Связь для linkedEpisodeId
+
+  compositions     Composition[]
+  linkedMediaFiles MediaFileMeta[]
+
   externalIds    Json?
-  
-  @@unique([seasonId, episodeNumber]) // Номер эпизода должен быть уникальным в рамках одного сезона
+
+  @@unique([seasonId, episodeNumber])
+  @@map("episodes")
 }
