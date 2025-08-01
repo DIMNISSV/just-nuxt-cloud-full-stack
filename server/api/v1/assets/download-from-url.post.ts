@@ -1,6 +1,10 @@
+// server/api/v1/assets/download-from-url.post.ts
+
 import prisma from '~/server/utils/prisma'
 import { addDownloadUrlJob } from '~/server/utils/queue'
 import type { AssetType } from '@prisma/client'
+// ★ ИЗМЕНЕНИЕ: Импортируем uuid для генерации уникального плейсхолдера
+import { v4 as uuidv4 } from 'uuid'
 
 interface DownloadFromUrlPayload {
     sourceUrl: string;
@@ -19,21 +23,21 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, message: 'Необходимы sourceUrl и assetType' })
     }
 
-    // Извлекаем предполагаемое имя файла из URL для первоначального создания
     const originalFilename = body.sourceUrl.split('/').pop()?.split('?')[0] || 'downloaded_file'
 
-    // 1. Создаем запись FileAsset со статусом PENDING
+    // ★ ИЗМЕНЕНИЕ: Генерируем уникальный временный ключ вместо пустой строки
+    const tempS3Key = `pending-url-download/${uuidv4()}`
+
     const newAsset = await prisma.fileAsset.create({
         data: {
             originalFilename,
-            s3Key: '', // s3Key будет заполнен воркером
-            sizeBytes: 0, // Размер также будет определен воркером
-            mimeType: 'application/octet-stream', // MIME-тип будет уточнен воркером
+            s3Key: tempS3Key, // ★ ИЗМЕНЕНИЕ: Используем уникальный плейсхолдер
+            sizeBytes: 0,
+            mimeType: 'application/octet-stream',
             status: 'PENDING',
             assetType: body.assetType,
             userId: user.userId,
 
-            // Создаем связанную мета-запись
             ...(body.assetType === 'PERSONAL' && {
                 personalFileMeta: {
                     create: {
@@ -49,13 +53,11 @@ export default defineEventHandler(async (event) => {
         },
     })
 
-    // 2. Ставим задачу в очередь на скачивание
     await addDownloadUrlJob({
         assetId: newAsset.id,
         sourceUrl: body.sourceUrl,
     })
 
-    // 3. Возвращаем ID ассета для отслеживания
     return {
         assetId: newAsset.id,
         message: 'Загрузка по URL поставлена в очередь.',
