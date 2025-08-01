@@ -2,7 +2,7 @@
 
 import prisma from '~/server/utils/prisma'
 import { addDownloadUrlJob } from '~/server/utils/queue'
-import type { AssetType } from '@prisma/client'
+// import type { AssetType } from '@prisma/client'
 // ★ ИЗМЕНЕНИЕ: Импортируем uuid для генерации уникального плейсхолдера
 import { v4 as uuidv4 } from 'uuid'
 

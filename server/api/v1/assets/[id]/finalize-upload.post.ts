@@ -1,7 +1,7 @@
 import prisma from '~/server/utils/prisma'
 import { objectExists, moveObject } from '~/server/utils/s3'
 import { addMediaJob } from '~/server/utils/queue'
-import { AssetType } from '@prisma/client'
+// import { AssetType } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
     // ... (весь код до `updatedAsset` остается без изменений) ...

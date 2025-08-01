@@ -1,6 +1,6 @@
 import { Queue } from 'bullmq'
 import { runtimeConfig } from '../../config' // Импортируем нашу общую конфигурацию
-import { AssetType } from '@prisma/client'
+// import { AssetType } from '@prisma/client'
 
 // === НОВАЯ ОЧЕРЕДЬ ДЛЯ ОБРАБОТКИ МЕДИА ===
 const processMediaQueueName = 'process-media-job'

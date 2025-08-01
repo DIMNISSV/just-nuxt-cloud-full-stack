@@ -1,7 +1,7 @@
 import prisma from '~/server/utils/prisma'
 import { generateUploadUrl } from '~/server/utils/s3'
-import type { RequestUploadPayload } from '~/types'
-import { AssetType } from '@prisma/client'
+// import type { RequestUploadPayload } from '~/types'
+// import { AssetType } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
     // Middleware уже должен был проверить авторизацию и добавить user в контекст

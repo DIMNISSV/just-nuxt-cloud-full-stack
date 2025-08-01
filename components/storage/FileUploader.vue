@@ -16,8 +16,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import type { RequestUploadResponse } from '~/types';
-import { AssetType } from '~/types';
+// import type { RequestUploadResponse } from '~/types';
+// import { AssetType } from '~/types';
 
 const props = defineProps<{
     filesToUpload: File[];

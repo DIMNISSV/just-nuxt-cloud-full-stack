@@ -5,9 +5,9 @@ import { NodeType } from '@prisma/client'
 
 // Определяем, что может прийти в теле запроса
 interface CreateNodePayload {
-    type: NodeType;
-    name: string;
-    parentId?: number | 'root' | null;
+  type: NodeType;
+  name: string;
+  parentId?: number | 'root' | null;
 }
 
 export default defineEventHandler(async (event) => {
