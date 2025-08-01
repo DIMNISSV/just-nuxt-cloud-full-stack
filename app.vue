@@ -1,13 +1,12 @@
 <template>
-  <UApp>
+  <UApp :toaster="tc">
     <div class="bg-gray-100 min-h-screen flex flex-col">
       <header class="bg-gray-800 text-white shadow-md sticky top-0 z-40">
         <nav class="container mx-auto flex items-center justify-between p-4 flex-wrap">
           <!-- Левая часть: Лого и основные разделы -->
           <div class="flex items-center gap-6">
-            <!-- ★ ИЗМЕНЕНИЕ: Обновляем брендинг -->
-            <NuxtLink to="/" class="text-xl font-bold">jCloud</NuxtLink>
-            <NuxtLink to="/series" class="text-sm hover:text-blue-300">Медиатека</NuxtLink>
+            <NuxtLink to="/" class="text-xl font-bold">MediaServer</NuxtLink>
+            <NuxtLink to="/series" class="text-sm hover:text-blue-300">Сериалы</NuxtLink>
           </div>
 
           <!-- Центральная часть: Разделы админки (только для админов) -->
@@ -41,5 +40,20 @@
 </template>
 
 <script setup lang="ts">
+import type { ToasterProps } from '@nuxt/ui';
+
+const tc: ToasterProps = {
+  position: 'top-left',
+  duration: 5000,
+  expand: true,
+}
+
+const toast = useToast()
+toast.add({
+  description: 'тестовый тост',
+  title: 'Тестовый тост',
+  duration: 10000000000
+})
+
 const { user, isLoggedIn } = useAuth();
 </script>
