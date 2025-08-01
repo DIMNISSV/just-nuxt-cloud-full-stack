@@ -5,8 +5,9 @@
         <nav class="container mx-auto flex items-center justify-between p-4 flex-wrap">
           <!-- Левая часть: Лого и основные разделы -->
           <div class="flex items-center gap-6">
-            <NuxtLink to="/" class="text-xl font-bold">MediaServer</NuxtLink>
-            <NuxtLink to="/series" class="text-sm hover:text-blue-300">Сериалы</NuxtLink>
+            <!-- ★ ИЗМЕНЕНИЕ: Обновляем брендинг -->
+            <NuxtLink to="/" class="text-xl font-bold">jCloud</NuxtLink>
+            <NuxtLink to="/series" class="text-sm hover:text-blue-300">Медиатека</NuxtLink>
           </div>
 
           <!-- Центральная часть: Разделы админки (только для админов) -->
@@ -40,12 +41,5 @@
 </template>
 
 <script setup lang="ts">
-import type { ToasterProps } from '@nuxt/ui';
-
-const tc: ToasterProps = {
-  position: 'top-left',
-  duration: 5000,
-  expand: true,
-}
 const { user, isLoggedIn } = useAuth();
 </script>

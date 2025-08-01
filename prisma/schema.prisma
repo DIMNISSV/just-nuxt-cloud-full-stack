@@ -11,7 +11,7 @@ datasource db {
 }
 
 // ======================================================================
-// 1. БАЗОВЫЕ И АУТЕНТИФИКАЦИОННЫЕ МОДЕЛИ
+// 1. БАЗОВЫЕ МОДЕЛИ (User, Role) - без изменений
 // ======================================================================
 
 model User {
@@ -22,9 +22,8 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Связи
-  fileAssets   FileAsset[]
-  folders      PersonalFolder[]
+  // ★ ИЗМЕНЕНИЕ: Связь с новым StorageNode
+  storageNodes StorageNode[]
 }
 
 enum Role {
@@ -33,137 +32,96 @@ enum Role {
 }
 
 // ======================================================================
-// 2. УНИФИЦИРОВАННАЯ СИСТЕМА ФАЙЛОВ (FileAsset) - ЯДРО СИСТЕМЫ
+// 2. ЯДРО: СЕРВИС ХРАНИЛИЩА (Storage Service)
 // ======================================================================
 
-// Центральная модель для ЛЮБОГО файла в системе
-model FileAsset {
-  id               Int         @id @default(autoincrement())
-  uuid             String      @unique @default(uuid())
-  originalFilename String
-  s3Key            String      @unique
-  sizeBytes        BigInt
-  mimeType         String
-  status           AssetStatus @default(PENDING)
-  
-  createdAt        DateTime    @default(now())
-  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId           Int
+// ★ НОВАЯ МОДЕЛЬ: Универсальный узел хранения (файл или папка)
+model StorageNode {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  type      NodeType // 'FILE' или 'FOLDER'
+  name      String   // Имя файла или папки
 
-  assetType        AssetType
-  
-  mediaFileMeta    MediaFileMeta?
-  personalFileMeta PersonalFileMeta?
+  // -- Поля, специфичные для ФАЙЛОВ --
+  s3Key     String?  @unique // У папок его нет
+  mimeType  String?
+  sizeBytes BigInt?
+  status    NodeStatus @default(AVAILABLE)
 
-  @@map("file_assets")
+  // -- Общие поля --
+  meta      Json?    // Для любой дополнительной информации (качество, язык, превью и т.д.)
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId   Int
+
+  // -- Иерархия --
+  parentId  Int?
+  parent    StorageNode?  @relation("NodeHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  StorageNode[] @relation("NodeHierarchy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // -- Связи с "приложениями", которые используют этот узел --
+  mediaSourceForEpisodes EpisodeMediaSource[]
+  compositionAsVideo     Composition[]        @relation("CompositionVideoStream")
+  compositionAsAudio     Composition[]        @relation("CompositionAudioStream")
+  compositionAsSubtitle  Composition[]        @relation("CompositionSubtitleStream")
+
+  @@unique([ownerId, parentId, name])
+  @@map("storage_nodes")
 }
 
-enum AssetStatus {
-  PENDING
-  PROCESSING
-  AVAILABLE
-  ERROR
+// ★ НОВЫЙ ENUM: Тип узла в хранилище
+enum NodeType {
+  FILE
+  FOLDER
 }
 
-enum AssetType {
-  MEDIA_SOURCE
-  PERSONAL
-}
-
-// Метаданные для МЕДИА-файла
-model MediaFileMeta {
-  id              Int      @id @default(autoincrement())
-  asset           FileAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  assetId         Int      @unique
-  
-  derivedStreams  MediaStream[]
-  
-  linkedEpisodeId Int?
-  linkedEpisode   Episode? @relation(fields: [linkedEpisodeId], references: [id], onDelete: SetNull)
-
-  @@map("media_file_meta")
-}
-
-// Метаданные для ЛИЧНОГО файла
-model PersonalFileMeta {
-  id         Int      @id @default(autoincrement())
-  asset      FileAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  assetId    Int      @unique
-
-  folderId   Int?
-  folder     PersonalFolder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
-
-  @@map("personal_file_meta")
-}
-
-// Папка в личном хранилище
-model PersonalFolder {
-  id         Int      @id @default(autoincrement())
-  name       String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     Int
-
-  parentId   Int?
-  parent     PersonalFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children   PersonalFolder[] @relation("FolderHierarchy")
-
-  files      PersonalFileMeta[]
-
-  @@unique([userId, parentId, name])
-  @@map("personal_folders")
+// ★ НОВЫЙ ENUM: Статус обработки файла
+enum NodeStatus {
+  PENDING     // Ожидает загрузки/обработки
+  PROCESSING  // В процессе обработки воркером
+  AVAILABLE   // Готов к использованию
+  ERROR       // Ошибка обработки
 }
 
 // ======================================================================
-// 3. МЕДИА-ЧАСТЬ (Сериалы, Эпизоды, Сборки)
+// 3. ПРИЛОЖЕНИЕ "МЕДИАТЕКА" (Media Library Application)
 // ======================================================================
 
-model MediaStream {
-  id                Int      @id @default(autoincrement())
-  type              StreamType
-  filePath          String
-  qualityLabel      String
-  codecInfo         String?
-  language          String?
-  
-  sourceMediaFile   MediaFileMeta @relation(fields: [sourceMediaFileId], references: [id], onDelete: Cascade)
-  sourceMediaFileId Int
-
-  compositionsAsVideo Composition[] @relation("VideoSource")
-  compositionsAsAudio Composition[] @relation("AudioSource")
-  compositionsAsSub   Composition[] @relation("SubtitleSource")
-
-  @@map("media_streams")
-}
-
-enum StreamType {
-  VIDEO
-  AUDIO
-  SUBTITLE
-}
-
-model Composition {
+// ★ НОВАЯ МОДЕЛЬ: Связывает эпизод с его исходным файлом в хранилище
+model EpisodeMediaSource {
   id            Int         @id @default(autoincrement())
-  name          String
-  audioOffsetMs Int         @default(0)
-  createdAt     DateTime    @default(now())
-  
   episode       Episode     @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   episodeId     Int
+  storageNode   StorageNode @relation(fields: [storageNodeId], references: [id], onDelete: Cascade)
+  storageNodeId Int
 
-  videoStream   MediaStream @relation("VideoSource", fields: [videoStreamId], references: [id], onDelete: Cascade)
-  videoStreamId Int
+  @@unique([episodeId, storageNodeId])
+  @@map("episode_media_sources")
+}
 
-  audioStream   MediaStream @relation("AudioSource", fields: [audioStreamId], references: [id], onDelete: Cascade)
-  audioStreamId Int
+// ★ ИЗМЕНЕНИЕ: Модель Composition теперь ссылается напрямую на StorageNode
+model Composition {
+  id            Int      @id @default(autoincrement())
+  name          String
+  audioOffsetMs Int      @default(0)
+  createdAt     DateTime @default(now())
+  
+  episodeId     Int
+  episode       Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 
-  subtitleStream  MediaStream? @relation("SubtitleSource", fields: [subtitleStreamId], references: [id], onDelete: SetNull)
-  subtitleStreamId Int?
+  videoStreamNodeId   Int
+  videoStreamNode     StorageNode @relation("CompositionVideoStream", fields: [videoStreamNodeId], references: [id], onDelete: Cascade)
+  
+  audioStreamNodeId   Int
+  audioStreamNode     StorageNode @relation("CompositionAudioStream", fields: [audioStreamNodeId], references: [id], onDelete: Cascade)
+  
+  subtitleStreamNodeId Int?
+  subtitleStreamNode   StorageNode? @relation("CompositionSubtitleStream", fields: [subtitleStreamNodeId], references: [id], onDelete: SetNull)
 
-  translator    Translator? @relation(fields: [translatorId], references: [id], onDelete: SetNull) // onDelete: SetNull, чтобы удаление переводчика не ломало сборки
   translatorId  Int?
+  translator    Translator? @relation(fields: [translatorId], references: [id], onDelete: SetNull)
 
   @@map("compositions")
 }
@@ -177,41 +135,42 @@ model Translator {
 }
 
 model Series {
-  id         Int       @id @default(autoincrement())
-  title      String    @unique
-  posterUrl  String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  seasons    Season[]
+  id          Int      @id @default(autoincrement())
+  title       String   @unique
+  posterUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  seasons     Season[]
   externalIds Json?
 
   @@map("series")
 }
 
 model Season {
-  id            Int      @id @default(autoincrement())
-  seasonNumber  Int
-  createdAt     DateTime @default(now())
-  series        Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  seriesId      Int
-  episodes      Episode[]
+  id           Int       @id @default(autoincrement())
+  seasonNumber Int
+  createdAt    DateTime  @default(now())
+  series       Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  seriesId     Int
+  episodes     Episode[]
 
   @@unique([seriesId, seasonNumber])
   @@map("seasons")
 }
 
+// ★ ИЗМЕНЕНИЕ: Модель Episode теперь ссылается на новую связующую модель
 model Episode {
-  id             Int           @id @default(autoincrement())
-  episodeNumber  Int
-  title          String?
-  createdAt      DateTime      @default(now())
-  season         Season        @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  seasonId       Int
+  id            Int      @id @default(autoincrement())
+  episodeNumber Int
+  title         String?
+  createdAt     DateTime @default(now())
+  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  seasonId      Int
 
-  compositions     Composition[]
-  linkedMediaFiles MediaFileMeta[]
-
-  externalIds    Json?
+  compositions Composition[]
+  mediaSources EpisodeMediaSource[] // Связь с исходными файлами
+  
+  externalIds Json?
 
   @@unique([seasonId, episodeNumber])
   @@map("episodes")

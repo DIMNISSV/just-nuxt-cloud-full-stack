@@ -1,9 +1,7 @@
 // app.config.ts
-// Этот файл всё еще нужен Nuxt для публичной конфигурации на стороне клиента.
-// Его содержимое должно быть синхронизировано с config.ts
-
 export default defineAppConfig({
-  title: 'Just Media Server',
+  // ★ ИЗМЕНЕНИЕ: Обновляем заголовок
+  title: 'jCloud.me',
   worker: {
     tempDir: './temp',
   },
