@@ -15,6 +15,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 
+// Локальный интерфейс для отслеживания состояния каждого файла в очереди
 interface UploadQueueItem {
     id: number;
     file: File;
@@ -22,6 +23,7 @@ interface UploadQueueItem {
     error: string | null;
 }
 
+// Ожидаемый ответ от API для запроса URL на загрузку
 interface RequestUploadResponse {
     nodeId: number;
     uploadUrl: string;
@@ -37,6 +39,7 @@ const toast = useToast();
 const uploadQueue = ref<UploadQueueItem[]>([]);
 let nextId = 0;
 
+// Этот наблюдатель реагирует на выбор новых файлов в родительском компоненте
 watch(() => props.filesToUpload, (newFiles) => {
     if (newFiles.length === 0) return;
 
@@ -48,28 +51,30 @@ watch(() => props.filesToUpload, (newFiles) => {
             error: null,
         };
         uploadQueue.value.push(queueItem);
-        startUpload(queueItem);
+        startUpload(queueItem); // Запускаем загрузку для каждого нового файла
     });
 }, { deep: true });
 
 async function startUpload(item: UploadQueueItem) {
     try {
-        // 1. Запрос pre-signed URL
+        // Шаг 1: Запрашиваем у нашего бэкенда pre-signed URL для прямой загрузки в S3
         const { nodeId, uploadUrl } = await $fetch<RequestUploadResponse>('/api/v1/storage/nodes/request-upload-url', {
             method: 'POST',
             body: {
                 filename: item.file.name,
                 sizeBytes: item.file.size,
-                mimeType: item.file.type,
+                mimeType: item.file.type || 'application/octet-stream',
                 parentId: props.currentNodeId,
             },
         });
 
-        // 2. Прямая загрузка в S3 с отслеживанием прогресса
+
+        // Шаг 2: Выполняем прямую загрузку в S3 (MinIO) с помощью XMLHttpRequest для отслеживания прогресса
         await new Promise<void>((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('PUT', uploadUrl);
 
+            // Обновляем прогресс в UI
             xhr.upload.onprogress = (event) => {
                 if (event.lengthComputable) {
                     item.progress = (event.loaded / event.total) * 100;
@@ -88,13 +93,13 @@ async function startUpload(item: UploadQueueItem) {
             xhr.send(item.file);
         });
 
-        // 3. Финализация загрузки
+        // Шаг 3: Сообщаем нашему бэкенду, что загрузка завершена, чтобы он мог финализировать файл
         await $fetch(`/api/v1/storage/nodes/${nodeId}/finalize-upload`, { method: 'POST' });
 
-        // Удаляем из очереди после успеха
+        // Удаляем успешно загруженный файл из очереди
         uploadQueue.value = uploadQueue.value.filter(q => q.id !== item.id);
 
-        // Если это была последняя загрузка, сообщаем родителю
+        // Если это был последний файл в очереди, сообщаем родителю, чтобы он обновил список
         if (uploadQueue.value.length === 0) {
             emit('upload-complete');
         }

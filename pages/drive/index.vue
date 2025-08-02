@@ -1,36 +1,28 @@
 <template>
+    <!-- ★ НОВОЕ: Основной контейнер теперь является зоной для drag-n-drop -->
     <div>
         <h1 class="text-3xl font-bold mb-4">Мой Диск</h1>
 
         <div class="flex justify-between items-center mb-4 p-4 bg-gray-50 rounded-lg border">
-            <!-- Хлебные крошки -->
+            <!-- Хлебные крошки (без изменений) -->
             <div class="text-sm">
                 <button @click="navigateToNode('root')" class="hover:underline text-blue-600">Корень</button>
                 <template v-for="crumb in breadcrumbs" :key="crumb.id">
                     <span class="mx-1 text-gray-400">/</span>
                     <button @click="navigateToNode(crumb.id)" class="hover:underline text-blue-600">{{ crumb.name
-                    }}</button>
+                        }}</button>
                 </template>
             </div>
 
-            <!-- Кнопки действий -->
+            <!-- Кнопки действий (без изменений) -->
             <div class="flex items-center gap-2">
-                <!-- ★ ИСПРАВЛЕНИЕ: Компонент модального окна теперь полностью автономен. v-model убран. -->
                 <DriveCreateFolderModal :current-node-id="currentNodeId" @created="refresh" />
-
                 <UButton icon="i-heroicons-link-20-solid" size="sm" color="neutral" variant="solid"
                     label="Загрузить по URL" disabled />
-
-                <!-- ★ ИЗМЕНЕНИЕ: Добавлена логика для выбора и передачи файлов в Uploader -->
-                <label>
-                    <UButton tag="span" icon="i-heroicons-arrow-up-tray-20-solid" size="sm" color="primary"
-                        variant="solid" label="Загрузить файл" />
-                    <input type="file" multiple @change="handleFileSelect" class="hidden">
-                </label>
+                <DriveUploadModal :current-node-id="currentNodeId" @upload-started="onUploadStarted" />
             </div>
         </div>
 
-        <!-- ★ НОВОЕ: Компонент для отображения процесса загрузки -->
         <DriveFileUploader :files-to-upload="filesToUpload" :current-node-id="currentNodeId"
             @upload-complete="handleUploadComplete" />
 
@@ -53,11 +45,50 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { type StorageNode } from '~/types';
+import DriveUploadModal from '~/components/drive/UploadModal.vue'; // Импортируем новый компонент
+
 definePageMeta({ middleware: 'auth' });
 
 const route = useRoute();
 const router = useRouter();
 const currentNodeId = ref(parseNodeIdFromQuery(route.query.nodeId));
+
+// --- Загрузка файлов ---
+const filesToUpload = ref<File[]>([]);
+
+// ★ НОВОЕ: Эта функция получает файлы из модального окна
+function onUploadStarted(files: File[]) {
+    filesToUpload.value = files;
+}
+
+function handleUploadComplete() {
+    refresh();
+}
+
+const { data, pending, refresh } = await useFetch<{
+    nodes: StorageNode[];
+    breadcrumbs: { id: number, name: string }[];
+}>(() => `/api/v1/storage/nodes/${currentNodeId.value}/children`);
+
+const getItemType = (node: StorageNode) => node.type.toLowerCase() as 'folder' | 'file';
+const nodes = computed(() => data.value?.nodes || []);
+const breadcrumbs = computed(() => data.value?.breadcrumbs || []);
+
+
+function navigateToNode(nodeId: number | 'root') {
+    currentNodeId.value = nodeId;
+}
+watch(currentNodeId, (newId) => {
+    router.push({ query: { nodeId: newId === null ? 'root' : newId } });
+});
+
+function parseNodeIdFromQuery(queryValue: unknown): number | 'root' {
+    if (!queryValue || Array.isArray(queryValue) || queryValue === 'root') {
+        return 'root';
+    }
+    const id = parseInt(String(queryValue), 10);
+    return isNaN(id) ? 'root' : id;
+};
 
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
@@ -72,46 +103,4 @@ onUnmounted(() => {
     if (refreshInterval) clearInterval(refreshInterval);
 });
 
-const { data, pending, refresh } = await useFetch<{
-    nodes: StorageNode[];
-    breadcrumbs: { id: number, name: string }[];
-}>(() => `/api/v1/storage/nodes/${currentNodeId.value}/children`);
-
-const getItemType = (node: StorageNode) => node.type.toLowerCase() as 'folder' | 'file'
-
-const nodes = computed(() => data.value?.nodes || []);
-const breadcrumbs = computed(() => data.value?.breadcrumbs || []);
-
-function navigateToNode(nodeId: number | 'root') {
-    currentNodeId.value = nodeId;
-}
-watch(currentNodeId, (newId) => {
-    router.push({ query: { nodeId: newId === null ? 'root' : 'root' } });
-});
-
-// --- ★ НОВОЕ: Логика загрузки файлов ---
-const filesToUpload = ref<File[]>([]);
-
-function handleFileSelect(event: Event) {
-    const target = event.target as HTMLInputElement;
-    if (target.files) {
-        // Передаем массив выбранных файлов в компонент-загрузчик
-        filesToUpload.value = Array.from(target.files);
-        // Сбрасываем значение инпута, чтобы можно было выбрать тот же файл еще раз
-        target.value = '';
-    }
-}
-
-function handleUploadComplete() {
-    // После завершения всех загрузок, обновляем список файлов в текущей папке
-    refresh();
-}
-
-function parseNodeIdFromQuery(queryValue: unknown): number | 'root' {
-    if (!queryValue || Array.isArray(queryValue) || queryValue === 'root') {
-        return 'root';
-    }
-    const id = parseInt(String(queryValue), 10);
-    return isNaN(id) ? 'root' : id;
-};
 </script>
