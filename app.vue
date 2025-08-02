@@ -1,16 +1,17 @@
 <template>
   <UApp :toaster="tc">
-    <div class="bg-gray-100 min-h-screen flex flex-col">
+    <div class="bg-gray-100 min-h-screen min-w-300 flex flex-col">
       <header class="bg-gray-800 text-white shadow-md sticky top-0 z-40">
         <nav class="container mx-auto flex items-center justify-between p-4 flex-wrap">
           <!-- Левая часть: Лого и основные разделы -->
-          <div class="flex items-center gap-6">
+          <div class="flex items-center gap-6 flex-wrap">
             <NuxtLink to="/" class="text-xl font-bold">MediaServer</NuxtLink>
             <NuxtLink to="/series" class="text-sm hover:text-blue-300">Сериалы</NuxtLink>
           </div>
 
           <!-- Центральная часть: Разделы админки (только для админов) -->
-          <div v-if="user?.role === 'ADMIN'" class="flex items-center gap-4 text-sm font-semibold text-yellow-300">
+          <div v-if="user?.role === 'ADMIN'"
+            class="flex items-center gap-4 text-sm font-semibold text-yellow-300 flex-wrap">
             <NuxtLink to="/admin/series" class="hover:text-yellow-100">Сериалы</NuxtLink>
             <NuxtLink to="/admin/translators" class="hover:text-yellow-100">Переводчики</NuxtLink>
             <NuxtLink to="/admin/users" class="hover:text-yellow-100">Пользователи</NuxtLink>
