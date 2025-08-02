@@ -9,19 +9,19 @@
                 <template v-for="crumb in breadcrumbs" :key="crumb.id">
                     <span class="mx-1 text-gray-400">/</span>
                     <button @click="navigateToNode(crumb.id)" class="hover:underline text-blue-600">{{ crumb.name
-                        }}</button>
+                    }}</button>
                 </template>
             </div>
 
             <!-- Кнопки действий -->
             <div class="flex items-center gap-2">
-                <!-- Модальное окно невидимо, пока v-model=false. Ошибка "modelValue is missing" исправлена. -->
-                <DriveCreateFolderModal v-model="isCreateFolderModalOpen" :current-node-id="currentNodeId"
-                    @created="refresh" />
+                <!-- ★ ИСПРАВЛЕНИЕ: Компонент модального окна теперь полностью автономен. v-model убран. -->
+                <DriveCreateFolderModal :current-node-id="currentNodeId" @created="refresh" />
 
                 <UButton icon="i-heroicons-link-20-solid" size="sm" color="neutral" variant="solid"
                     label="Загрузить по URL" disabled />
 
+                <!-- ★ ИЗМЕНЕНИЕ: Добавлена логика для выбора и передачи файлов в Uploader -->
                 <label>
                     <UButton tag="span" icon="i-heroicons-arrow-up-tray-20-solid" size="sm" color="primary"
                         variant="solid" label="Загрузить файл" />
@@ -30,6 +30,7 @@
             </div>
         </div>
 
+        <!-- ★ НОВОЕ: Компонент для отображения процесса загрузки -->
         <DriveFileUploader :files-to-upload="filesToUpload" :current-node-id="currentNodeId"
             @upload-complete="handleUploadComplete" />
 
@@ -85,22 +86,24 @@ function navigateToNode(nodeId: number | 'root') {
     currentNodeId.value = nodeId;
 }
 watch(currentNodeId, (newId) => {
-    router.push({ query: { nodeId: newId === null ? 'root' : newId } });
+    router.push({ query: { nodeId: newId === null ? 'root' : 'root' } });
 });
 
-// --- Модальное окно создания папки ---
-const isCreateFolderModalOpen = ref(false);
-
-// --- Загрузка файлов ---
+// --- ★ НОВОЕ: Логика загрузки файлов ---
 const filesToUpload = ref<File[]>([]);
+
 function handleFileSelect(event: Event) {
     const target = event.target as HTMLInputElement;
     if (target.files) {
+        // Передаем массив выбранных файлов в компонент-загрузчик
         filesToUpload.value = Array.from(target.files);
+        // Сбрасываем значение инпута, чтобы можно было выбрать тот же файл еще раз
         target.value = '';
     }
 }
+
 function handleUploadComplete() {
+    // После завершения всех загрузок, обновляем список файлов в текущей папке
     refresh();
 }
 
