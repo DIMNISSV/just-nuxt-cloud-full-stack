@@ -13,7 +13,7 @@ export default defineAppConfig({
   ui: {
     toast: {
       "slots": {
-        "root": "flex w-80 m-4 bg-white group overflow-hidden shadow-lg rounded-lg ring ring-default p-4 gap-3 focus:outline-none",
+        "root": "flex z-[100] w-80 m-4 bg-white group overflow-hidden shadow-lg rounded-lg ring ring-default p-4 gap-3 focus:outline-none",
       },
     },
     modal: {
