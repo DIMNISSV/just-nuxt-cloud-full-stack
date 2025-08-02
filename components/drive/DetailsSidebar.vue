@@ -1,5 +1,7 @@
 <template>
-    <aside v-if="node" class="p-4 border-l bg-white w-80 flex-shrink-0">
+    <aside v-if="node"
+        class="fixed inset-0 z-40 bg-white p-4 transition-transform md:relative md:z-auto md:w-80 md:flex-shrink-0 md:border-l md:p-4"
+        :class="{ 'translate-x-0': node, 'translate-x-full': !node }">
         <div class="flex justify-between items-center mb-4">
             <h2 class="font-semibold">Свойства</h2>
             <UButton icon="i-heroicons-x-mark-20-solid" color="neutral" variant="ghost" @click="emit('close')" />
@@ -14,7 +16,8 @@
                     <Icon
                         :name="node.type === 'FOLDER' ? 'heroicons:folder-20-solid' : 'heroicons:document-20-solid'" />
                 </div>
-                <EditableFieldName :model-value="node.name" :node-id="node.id" @renamed="emit('renamed')" />
+                <!-- ★ ИЗМЕНЕНИЕ: Добавлен @click.stop, чтобы клик не "всплывал" и не закрывал панель -->
+                <EditableFieldName :model-value="node.name" :node-id="node.id" @renamed="emit('renamed')" @click.stop />
             </div>
 
             <hr class="border-gray-200" />
@@ -41,8 +44,9 @@
             <hr class="border-gray-200" />
 
             <div class="space-y-2">
+                <!-- ★ ИСПРАВЛЕНИЕ: Добавлена проверка на существование `node` перед вызовом emit -->
                 <UButton icon="i-heroicons-trash-20-solid" color="error" variant="outline" block label="Удалить"
-                    @click="emit('deleted', node.id)" />
+                    @click="node && emit('deleted', node.id)" />
             </div>
         </div>
     </aside>
