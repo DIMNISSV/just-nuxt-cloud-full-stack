@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, HeadObjectCommand, CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, HeadObjectCommand, CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { v4 as uuidv4 } from 'uuid'
 import { createReadStream } from 'fs'
@@ -112,6 +112,7 @@ export async function deleteObject(s3Key: string): Promise<void> {
 export async function deleteMultipleObjects(keys: string[]): Promise<void> {
     if (keys.length === 0) return
 
+    // S3 API позволяет удалять до 1000 объектов за один запрос
     const chunks: string[][] = []
     for (let i = 0; i < keys.length; i += 1000) {
         chunks.push(keys.slice(i, i + 1000))
@@ -135,4 +136,19 @@ export async function deleteMultipleObjects(keys: string[]): Promise<void> {
     } catch (error) {
         console.error('[S3] Критическая ошибка при массовом удалении:', error)
     }
+}
+
+export async function generateDownloadUrl(s3Key: string, filename: string) {
+    const command = new GetObjectCommand({
+        Bucket: BUCKET,
+        Key: s3Key,
+        // Этот заголовок указывает браузеру, что файл нужно скачать, а не отобразить
+        ResponseContentDisposition: `attachment; filename="${encodeURIComponent(filename)}"`
+    });
+
+    const downloadUrl = await getSignedUrl(s3Client, command, {
+        expiresIn: PRESIGNED_URL_EXPIRES_IN,
+    });
+
+    return downloadUrl;
 }

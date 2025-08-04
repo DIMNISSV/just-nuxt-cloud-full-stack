@@ -1,31 +1,27 @@
 // types/index.ts
 
-// --- Enums, соответствующие схеме Prisma ---
+// --- Enums, соответствующие новой схеме Prisma ---
 
 export enum Role {
   USER = 'USER',
   ADMIN = 'ADMIN'
 }
 
-export enum AssetStatus {
+// ★ НОВЫЙ ENUM
+export enum NodeType {
+  FILE = 'FILE',
+  FOLDER = 'FOLDER'
+}
+
+// ★ НОВЫЙ ENUM
+export enum NodeStatus {
   PENDING = 'PENDING',
   PROCESSING = 'PROCESSING',
   AVAILABLE = 'AVAILABLE',
   ERROR = 'ERROR'
 }
 
-export enum AssetType {
-  MEDIA_SOURCE = 'MEDIA_SOURCE',
-  PERSONAL = 'PERSONAL'
-}
-
-export enum StreamType {
-  VIDEO = 'VIDEO',
-  AUDIO = 'AUDIO',
-  SUBTITLE = 'SUBTITLE'
-}
-
-// --- Модели данных, соответствующие схеме Prisma ---
+// --- Модели данных, соответствующие новой схеме Prisma ---
 
 export interface User {
   id: number;
@@ -35,63 +31,36 @@ export interface User {
   updatedAt: string;
 }
 
-export interface FileAsset {
+// ★ НОВАЯ МОДЕЛЬ: StorageNode
+export interface StorageNode {
   id: number;
   uuid: string;
-  originalFilename: string;
-  s3Key: string;
-  sizeBytes: number; // Prisma Client преобразует BigInt в number по умолчанию
-  mimeType: string;
-  status: AssetStatus;
-  assetType: AssetType;
-  createdAt: string;
-  userId: number;
-
-  mediaFileMeta?: MediaFileMeta;
-  personalFileMeta?: PersonalFileMeta;
-}
-
-export interface MediaFileMeta {
-  id: number;
-  assetId: number;
-  asset?: FileAsset;
-  derivedStreams: MediaStream[];
-  linkedEpisodeId: number | null;
-  linkedEpisode?: Episode;
-}
-
-export interface PersonalFileMeta {
-  id: number;
-  assetId: number;
-  asset?: FileAsset;
-  folderId: number | null;
-  folder?: PersonalFolder;
-}
-
-export interface PersonalFolder {
-  id: number;
+  type: NodeType;
   name: string;
+  s3Key?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number; // Prisma Client преобразует BigInt в number
+  status: NodeStatus;
+  meta?: Record<string, any> | null;
+  ownerId: number;
+  parentId?: number | null;
   createdAt: string;
   updatedAt: string;
-  userId: number;
-  parentId: number | null;
 
-  user?: User;
-  parent?: PersonalFolder;
-  children?: PersonalFolder[];
-  files?: PersonalFileMeta[];
+  // Опциональные связи для UI
+  children?: StorageNode[];
+  owner?: User;
 }
 
-export interface MediaStream {
+// ★ НОВАЯ МОДЕЛЬ: EpisodeMediaSource
+export interface EpisodeMediaSource {
   id: number;
-  type: StreamType;
-  filePath: string;
-  qualityLabel: string;
-  codecInfo: string | null;
-  language: string | null;
-  sourceMediaFileId: number;
+  episodeId: number;
+  storageNodeId: number;
+  storageNode?: StorageNode;
 }
 
+// ★ ИЗМЕНЕНИЕ: Composition
 export interface Composition {
   id: number;
   name: string;
@@ -99,17 +68,18 @@ export interface Composition {
   createdAt: string;
 
   episodeId: number;
-  videoStreamId: number;
-  audioStreamId: number;
-  subtitleStreamId: number | null; // Добавлено для будущей поддержки
-  translatorId: number | null;
+  videoStreamNodeId: number;
+  audioStreamNodeId: number;
+  subtitleStreamNodeId?: number | null;
+  translatorId?: number | null;
 
   episode?: Episode;
-  videoStream?: MediaStream;
-  audioStream?: MediaStream;
-  subtitleStream?: MediaStream;
+  videoStreamNode?: StorageNode;
+  audioStreamNode?: StorageNode;
+  subtitleStreamNode?: StorageNode;
   translator?: Translator;
 
+  // Конфиг для плеера остается концептуально тем же
   player_config?: {
     video: string;
     audio: { title: string, src: string }[];
@@ -142,6 +112,7 @@ export interface Season {
   episodes: Episode[];
 }
 
+// ★ ИЗМЕНЕНИЕ: Episode
 export interface Episode {
   id: number;
   episodeNumber: number;
@@ -151,7 +122,7 @@ export interface Episode {
   externalIds: Record<string, any> | null;
   season?: Season;
   compositions?: Composition[];
-  linkedMediaFiles?: MediaFileMeta[];
+  mediaSources?: EpisodeMediaSource[]; // Связь с исходными файлами
 }
 
 
@@ -169,28 +140,4 @@ export enum ExternalDbType {
   IMDB = 'imdb',
   KINOPOISK = 'kinopoisk',
   WORLD_ART = 'world-art',
-}
-
-// Полезно для UI, чтобы различать типы элементов в файловом менеджере
-export type StorageItem = (PersonalFolder & { itemType: 'folder' }) | (PersonalFileMeta & { itemType: 'file' });
-
-// Тип для входных данных при запросе pre-signed URL
-export interface RequestUploadPayload {
-  filename: string;
-  sizeBytes: number;
-  mimeType: string;
-  assetType: AssetType;
-  // Дополнительные метаданные в зависимости от assetType
-  folderId?: number; // Для PERSONAL
-}
-
-// Тип для ответа с pre-signed URL
-export interface RequestUploadResponse {
-  assetId: number;
-  uploadUrl: string; // Pre-signed URL для PUT-запроса
-}
-
-// Тип для запроса завершения загрузки
-export interface FinalizeUploadPayload {
-  // Ничего не нужно, ID ассета берется из URL
 }

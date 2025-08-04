@@ -9,7 +9,7 @@
                             <NuxtLink to="/" class="hover:text-white">Главная</NuxtLink>
                         </li>
                         <li>
-                            <NuxtLink to="/series" class="hover:text-white">Сериалы</NuxtLink>
+                            <NuxtLink to="/series" class="hover:text-white">Медиатека</NuxtLink>
                         </li>
                     </ul>
                 </div>
@@ -20,7 +20,7 @@
                             <NuxtLink to="/account/profile" class="hover:text-white">Профиль</NuxtLink>
                         </li>
                         <li>
-                            <NuxtLink to="/account/storage" class="hover:text-white">Моё хранилище</NuxtLink>
+                            <NuxtLink to="/drive" class="hover:text-white">Мой Диск</NuxtLink>
                         </li>
                     </ul>
                 </div>
@@ -42,7 +42,8 @@
                 </div>
             </div>
             <div class="mt-8 border-t border-gray-700 pt-4 text-center text-xs">
-                MediaServer Mockup © {{ new Date().getFullYear() }}
+                <!-- ★ ИЗМЕНЕНИЕ: Обновляем копирайт -->
+                jcloud.me © {{ new Date().getFullYear() }}
             </div>
         </div>
     </footer>

@@ -5,6 +5,6 @@ export default defineNuxtRouteMiddleware((to, from) => {
     // Если пользователь не залогинен, перенаправляем его на страницу входа.
     if (!isLoggedIn.value) {
         // Добавляем query-параметр, чтобы после входа вернуть пользователя обратно.
-        return navigateTo(`/login?redirectTo=${to.fullPath}`);
+        return navigateTo(`/account/login?redirectTo=${to.fullPath}`);
     }
 });
