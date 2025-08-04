@@ -39,8 +39,9 @@
             </div>
             <hr class="border-gray-200" />
             <div class="space-y-2">
-                <UButton v-if="node.type === 'FILE'" :to="`/drive/${node.uuid}/download`" target="_blank"
-                    icon="i-heroicons-arrow-down-tray-20-solid" color="primary" variant="solid" block label="Скачать" />
+                <!-- ★ ИЗМЕНЕНИЕ: :to заменен на @click для рендера в виде <button> -->
+                <UButton v-if="node.type === 'FILE'" @click="handleDownloadClick"
+                    icon="i-heroicons-arrow-down-tray-20-solid" color="primary" variant="outline" block label="Скачать" />
                 <UButton icon="i-heroicons-trash-20-solid" color="error" variant="outline" block label="Удалить"
                     @click="node && emit('deleted', node.uuid)" />
             </div>
@@ -56,6 +57,13 @@ const props = defineProps<{
     node: StorageNode | null;
 }>();
 const emit = defineEmits(['close', 'deleted', 'renamed']);
+
+// ★ НОВОЕ: Обработчик для программного перехода на страницу скачивания
+const handleDownloadClick = () => {
+    if (props.node) {
+        navigateTo(`/drive/${props.node.uuid}/download`, { open: { target: '_blank' } });
+    }
+};
 
 function formatBytes(bytes: number, decimals = 2): string {
     if (bytes === 0) return '0 Bytes';
