@@ -50,12 +50,12 @@ const tc: ToasterProps = {
   expand: true,
 }
 
-const toast = useToast()
-toast.add({
-  description: 'тестовый тост',
-  title: 'Тестовый тост',
-  duration: 10000000000
-})
+// const toast = useToast()
+// toast.add({
+//   description: 'тестовый тост',
+//   title: 'Тестовый тост',
+//   duration: 10000000000
+// })
 
 const { user, isLoggedIn } = useAuth();
 </script>

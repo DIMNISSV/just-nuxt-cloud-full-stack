@@ -22,7 +22,6 @@
 
 <script setup lang="ts">
 import { watch } from 'vue';
-definePageMeta({ middleware: 'auth' });
 
 const route = useRoute();
 const uuid = route.params.uuid as string;

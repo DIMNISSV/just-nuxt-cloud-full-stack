@@ -39,7 +39,7 @@
             </div>
             <hr class="border-gray-200" />
             <div class="space-y-2">
-                <UButton v-if="node.type === 'FILE'" :to="`/download/${node.uuid}`" target="_blank"
+                <UButton v-if="node.type === 'FILE'" :to="`/drive/${node.uuid}/download`" target="_blank"
                     icon="i-heroicons-arrow-down-tray-20-solid" color="primary" variant="solid" block label="Скачать" />
                 <UButton icon="i-heroicons-trash-20-solid" color="error" variant="outline" block label="Удалить"
                     @click="node && emit('deleted', node.uuid)" />
