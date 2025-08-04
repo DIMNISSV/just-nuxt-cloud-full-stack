@@ -1,12 +1,13 @@
 <template>
   <UApp :toaster="tc">
-    <div class="bg-gray-100 min-h-screen min-w-300 flex flex-col">
+    <div class="bg-gray-100 min-h-screen min-w-[320px] flex flex-col">
       <header class="bg-gray-800 text-white shadow-md sticky top-0 z-40">
         <nav class="container mx-auto flex items-center justify-between p-4 flex-wrap">
           <!-- Левая часть: Лого и основные разделы -->
           <div class="flex items-center gap-6 flex-wrap">
-            <NuxtLink to="/" class="text-xl font-bold">MediaServer</NuxtLink>
-            <NuxtLink to="/series" class="text-sm hover:text-blue-300">Сериалы</NuxtLink>
+            <NuxtLink to="/" class="text-xl font-bold">jcloud.me</NuxtLink>
+            <NuxtLink to="/series" class="text-sm hover:text-blue-300">Медиатека</NuxtLink>
+            <NuxtLink to="/drive" class="text-sm hover:text-blue-300">Диск</NuxtLink>
           </div>
 
           <!-- Центральная часть: Разделы админки (только для админов) -->
