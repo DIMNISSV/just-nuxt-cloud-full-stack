@@ -19,7 +19,6 @@
                         <li>
                             <NuxtLink to="/account/profile" class="hover:text-white">Профиль</NuxtLink>
                         </li>
-                        <!-- ★ ИЗМЕНЕНИЕ: Переименовываем "Моё хранилище" в "Мой Диск" -->
                         <li>
                             <NuxtLink to="/drive" class="hover:text-white">Мой Диск</NuxtLink>
                         </li>
