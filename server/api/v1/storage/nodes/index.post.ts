@@ -3,11 +3,10 @@
 import prisma from '~/server/utils/prisma'
 import { NodeType } from '@prisma/client'
 
-// Определяем, что может прийти в теле запроса
 interface CreateNodePayload {
-  type: NodeType;
-  name: string;
-  parentId?: number | 'root' | null;
+    type: NodeType;
+    name: string;
+    parentUuid?: string | null; // ★ ИЗМЕНЕНИЕ: Принимаем UUID родителя
 }
 
 export default defineEventHandler(async (event) => {
@@ -16,15 +15,21 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 401, message: 'Требуется авторизация' })
     }
 
-    const { type, name, parentId: parentIdRaw } = await readBody<CreateNodePayload>(event)
+    const { type, name, parentUuid } = await readBody<CreateNodePayload>(event)
 
     if (!type || !name) {
         throw createError({ statusCode: 400, message: 'Необходимо указать тип и имя узла' })
     }
 
-    const parentId = parentIdRaw === 'root' || !parentIdRaw ? null : parentIdRaw;
+    let parentId: number | null = null;
+    if (parentUuid) {
+        const parentNode = await prisma.storageNode.findUnique({ where: { uuid: parentUuid, ownerId: user.userId } });
+        if (!parentNode) {
+            throw createError({ statusCode: 404, message: 'Родительская папка не найдена' });
+        }
+        parentId = parentNode.id;
+    }
 
-    // Пока реализуем только создание папок
     if (type !== NodeType.FOLDER) {
         throw createError({ statusCode: 501, message: 'Создание узлов этого типа пока не реализовано' })
     }
@@ -36,10 +41,11 @@ export default defineEventHandler(async (event) => {
             parentId: parentId,
             ownerId: user.userId,
         },
-    })
+    });
 
+    setResponseStatus(event, 201);
     return {
         ...newFolder,
-        sizeBytes: null // Явно указываем null для консистентности
-    }
-})
+        sizeBytes: null
+    };
+});

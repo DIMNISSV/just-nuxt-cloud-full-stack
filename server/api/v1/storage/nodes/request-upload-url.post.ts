@@ -8,7 +8,7 @@ interface RequestUploadPayload {
     filename: string;
     sizeBytes: number;
     mimeType: string;
-    parentId: number | 'root' | null;
+    parentUuid: string | null; // ★ ИЗМЕНЕНИЕ: Принимаем UUID родителя
 }
 
 export default defineEventHandler(async (event) => {
@@ -18,31 +18,36 @@ export default defineEventHandler(async (event) => {
     }
 
     const body = await readBody<RequestUploadPayload>(event);
-
-    if (!body.filename || !body.sizeBytes || !body.mimeType) {
-        throw createError({ statusCode: 400, message: 'Не все обязательные поля заполнены: filename, sizeBytes, mimeType' });
+    if (!body.filename || body.sizeBytes === undefined || !body.mimeType) {
+        throw createError({ statusCode: 400, message: 'Не все обязательные поля заполнены' });
     }
 
-    // 1. Генерируем pre-signed URL и временный ключ в S3
+    let parentId: number | null = null;
+    if (body.parentUuid) {
+        const parentNode = await prisma.storageNode.findUnique({ where: { uuid: body.parentUuid, ownerId: user.userId } });
+        if (!parentNode) {
+            throw createError({ statusCode: 404, message: 'Родительская папка не найдена' });
+        }
+        parentId = parentNode.id;
+    }
+
     const { uploadUrl, s3Key } = await generateUploadUrl(body.filename, body.mimeType);
 
-    // 2. Создаем запись StorageNode в базе данных
     const newNode = await prisma.storageNode.create({
         data: {
             type: NodeType.FILE,
             name: body.filename,
-            s3Key: s3Key, // Временно храним временный ключ
+            s3Key,
             sizeBytes: body.sizeBytes,
             mimeType: body.mimeType,
             status: NodeStatus.PENDING,
             ownerId: user.userId,
-            parentId: body.parentId === 'root' ? null : body.parentId,
+            parentId,
         },
     });
 
-    // 3. Возвращаем URL и ID узла клиенту
     return {
-        nodeId: newNode.id,
-        uploadUrl: uploadUrl,
+        nodeUuid: newNode.uuid, // ★ ИЗМЕНЕНИЕ: Возвращаем UUID
+        uploadUrl,
     };
 });

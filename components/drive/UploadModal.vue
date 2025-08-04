@@ -1,15 +1,10 @@
 <template>
   <UModal>
-    <!-- Кнопка-триггер -->
     <UButton icon="i-heroicons-arrow-up-tray-20-solid" size="sm" color="primary" variant="solid"
       label="Загрузить файл" />
-
-    <!-- Заголовок -->
     <template #header>
       <h3 class="text-base font-semibold text-gray-900">Загрузка файлов</h3>
     </template>
-
-    <!-- Тело модального окна с зоной для D&D -->
     <template #body>
       <div class="space-y-4">
         <label @dragover.prevent @dragleave.prevent="isDragOver = false" @dragenter.prevent="isDragOver = true"
@@ -22,8 +17,6 @@
           </p>
           <input type="file" multiple class="hidden" @change="handleFileSelect">
         </label>
-
-        <!-- Список выбранных файлов -->
         <div v-if="selectedFiles.length > 0" class="space-y-2 max-h-48 overflow-y-auto pr-2">
           <div v-for="(file, index) in selectedFiles" :key="index"
             class="flex items-center justify-between text-sm p-2 bg-gray-100 rounded">
@@ -36,8 +29,6 @@
         </div>
       </div>
     </template>
-
-    <!-- Футер с кнопками действий -->
     <template #footer="{ close }">
       <div class="flex justify-end gap-3">
         <UButton label="Отмена" color="neutral" variant="solid" @click="close" />
@@ -52,7 +43,6 @@
 import { ref } from 'vue';
 
 const emit = defineEmits(['upload-started']);
-
 const selectedFiles = ref<File[]>([]);
 const isDragOver = ref(false);
 
@@ -71,7 +61,7 @@ const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files) {
     addFiles(target.files);
-    target.value = ''; // Сброс для повторного выбора того же файла
+    target.value = '';
   }
 };
 
@@ -81,9 +71,7 @@ const removeFile = (index: number) => {
 
 const startUpload = (close: () => void) => {
   if (selectedFiles.value.length === 0) return;
-  // Отправляем выбранные файлы родителю
   emit('upload-started', selectedFiles.value);
-  // Очищаем список и закрываем окно
   selectedFiles.value = [];
   close();
 };

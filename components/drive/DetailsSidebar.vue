@@ -6,7 +6,6 @@
             <h2 class="font-semibold">Свойства</h2>
             <UButton icon="i-heroicons-x-mark-20-solid" color="neutral" variant="ghost" @click="emit('close')" />
         </div>
-
         <div class="space-y-4">
             <div class="text-center py-4">
                 <div class="text-6xl mb-4 flex justify-center" :class="{
@@ -16,12 +15,10 @@
                     <Icon
                         :name="node.type === 'FOLDER' ? 'heroicons:folder-20-solid' : 'heroicons:document-20-solid'" />
                 </div>
-                <!-- ★ ИЗМЕНЕНИЕ: Добавлен @click.stop, чтобы клик не "всплывал" и не закрывал панель -->
-                <EditableFieldName :model-value="node.name" :node-id="node.id" @renamed="emit('renamed')" @click.stop />
+                <EditableFieldName :model-value="node.name" :node-uuid="node.uuid" @renamed="emit('renamed')"
+                    @click.stop />
             </div>
-
             <hr class="border-gray-200" />
-
             <div class="space-y-2 text-sm text-gray-600">
                 <div class="flex justify-between">
                     <span>Тип:</span>
@@ -40,13 +37,12 @@
                     <span class="font-medium text-gray-900">{{ new Date(node.updatedAt).toLocaleDateString() }}</span>
                 </div>
             </div>
-
             <hr class="border-gray-200" />
-
             <div class="space-y-2">
-                <!-- ★ ИСПРАВЛЕНИЕ: Добавлена проверка на существование `node` перед вызовом emit -->
+                <UButton v-if="node.type === 'FILE'" :to="`/download/${node.uuid}`" target="_blank"
+                    icon="i-heroicons-arrow-down-tray-20-solid" color="primary" variant="solid" block label="Скачать" />
                 <UButton icon="i-heroicons-trash-20-solid" color="error" variant="outline" block label="Удалить"
-                    @click="node && emit('deleted', node.id)" />
+                    @click="node && emit('deleted', node.uuid)" />
             </div>
         </div>
     </aside>
@@ -59,7 +55,6 @@ import EditableFieldName from './EditableFieldName.vue';
 const props = defineProps<{
     node: StorageNode | null;
 }>();
-
 const emit = defineEmits(['close', 'deleted', 'renamed']);
 
 function formatBytes(bytes: number, decimals = 2): string {
