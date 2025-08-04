@@ -1,10 +1,11 @@
 <template>
     <div class="flex h-full">
+
         <!-- Основная область с файлами -->
         <div class="flex-grow p-6" ref="mainAreaRef">
             <h1 class="text-3xl font-bold mb-4">Мой Диск</h1>
 
-            <div class="flex justify-between items-center mb-4 p-4 bg-gray-50 rounded-lg border flex-wrap">
+            <div class="flex justify-between items-center mb-4 p-4 bg-gray-50 rounded-lg border">
                 <!-- Хлебные крошки -->
                 <div class="text-sm">
                     <button @click="navigateToNode('root')" class="hover:underline text-blue-600">Корень</button>
@@ -16,7 +17,7 @@
                 </div>
 
                 <!-- Кнопки действий -->
-                <div class="flex items-center gap-2 flex-wrap">
+                <div class="flex items-center gap-2">
                     <DriveCreateFolderModal :current-node-id="currentNodeId" @created="refresh" />
                     <DriveUploadModal :current-node-id="currentNodeId" @upload-started="onUploadStarted" />
                 </div>
@@ -28,9 +29,10 @@
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 <div v-if="pending && !data" class="col-span-full text-center py-10 text-gray-500">Загрузка...</div>
 
-                <div v-for="node in nodes" :key="node.id" @click="handleSingleClick(node)"
-                    @dblclick="handleDoubleClick(node)" @touchstart="handleTouchStart(node)" @touchend="handleTouchEnd"
-                    @touchmove="handleTouchEnd">
+                <!-- ★ ИЗМЕНЕНИЕ: Полностью переработанные обработчики событий -->
+                <div v-for="node in nodes" :key="node.id" @click.prevent="handleMouseClick(node)"
+                    @dblclick="handleDoubleClick(node)" @touchstart.passive="handleTouchStart(node)"
+                    @touchend.prevent="handleTouchEnd(node)" @touchmove.passive="handleTouchMove">
                     <DriveItem :item="node" :item-type="getItemType(node)"
                         :is-selected="selectedNode?.id === node.id" />
                 </div>
@@ -66,8 +68,9 @@ const currentNodeId = ref(parseNodeIdFromQuery(route.query.nodeId));
 const filesToUpload = ref<File[]>([]);
 const selectedNode = ref<StorageNode | null>(null);
 const mainAreaRef = ref<HTMLElement | null>(null);
+
+// ★ НОВОЕ: Упрощенная логика для обработки касаний
 const longPressTimer = ref<NodeJS.Timeout | null>(null);
-const isLongPress = ref(false);
 
 const { data, pending, refresh } = await useFetch<{
     nodes: StorageNode[];
@@ -77,46 +80,61 @@ const { data, pending, refresh } = await useFetch<{
 const nodes = computed(() => data.value?.nodes || []);
 const breadcrumbs = computed(() => data.value?.breadcrumbs || []);
 
-// ★ ИСПРАВЛЕНИЕ: onClickOutside теперь игнорирует клики по самой боковой панели (и ее дочерним элементам)
-onClickOutside(mainAreaRef, () => {
-    // Если сайдбар уже открыт, то клик вне основной области не должен его закрывать.
-    // Это предотвращает закрытие при клике внутри сайдбара.
-    if (selectedNode.value) return;
+onClickOutside(mainAreaRef, (event) => {
+    if ((event.target as HTMLElement).closest('.md\\:w-80')) return;
     selectedNode.value = null;
-}, { ignore: [mainAreaRef] });
-
+});
 
 const getItemType = (node: StorageNode) => node.type.toLowerCase() as 'folder' | 'file';
 const selectNode = (node: StorageNode) => { selectedNode.value = node; };
 
-const handleSingleClick = (node: StorageNode) => {
-    if (isLongPress.value) {
-        isLongPress.value = false;
-        return;
+// --- Обработчики событий ---
+
+// Вызывается при старте касания
+const handleTouchStart = (node: StorageNode) => {
+    longPressTimer.value = setTimeout(() => {
+        selectNode(node); // Если палец задержали - открываем сайдбар
+        longPressTimer.value = null; // Помечаем, что таймер сработал
+    }, 500);
+};
+
+// Вызывается, когда палец убирают с экрана
+const handleTouchEnd = (node: StorageNode) => {
+    // Если таймер еще не сработал, значит это был короткий тап
+    if (longPressTimer.value) {
+        clearTimeout(longPressTimer.value);
+        longPressTimer.value = null;
+        navigateTo(node); // Выполняем навигацию
     }
-    // Если кликаем по уже выбранному элементу, ничего не делаем, чтобы не мешать двойному клику
-    if (selectedNode.value?.id === node.id) return;
+    // Если таймер уже сработал (longPressTimer.value === null), ничего не делаем,
+    // так как действие (открытие сайдбара) уже выполнено.
+};
+
+// Вызывается при движении пальца - отменяет долгое нажатие
+const handleTouchMove = () => {
+    if (longPressTimer.value) {
+        clearTimeout(longPressTimer.value);
+        longPressTimer.value = null;
+    }
+};
+
+// Этот обработчик будет вызван только мышью, т.к. touch-события его предотвращают
+const handleMouseClick = (node: StorageNode) => {
     selectNode(node);
 };
 
+// Двойной клик работает только для мыши
 const handleDoubleClick = (node: StorageNode) => {
+    navigateTo(node);
+};
+
+// --- Вспомогательные и основные функции ---
+
+const navigateTo = (node: StorageNode) => {
     if (node.type === 'FOLDER') {
         navigateToNode(node.id);
     } else {
         toast.add({ title: `Предпросмотр для "${node.name}" пока не реализован.` });
-    }
-};
-
-const handleTouchStart = (node: StorageNode) => {
-    longPressTimer.value = setTimeout(() => {
-        isLongPress.value = true;
-        selectNode(node);
-    }, 500);
-};
-
-const handleTouchEnd = () => {
-    if (longPressTimer.value) {
-        clearTimeout(longPressTimer.value);
     }
 };
 
@@ -141,20 +159,14 @@ const handleDelete = async (nodeId: number) => {
 const handleRenameSuccess = async () => {
     const renamedNodeId = selectedNode.value?.id;
     if (!renamedNodeId) return;
-
     await refresh();
     await nextTick();
-
     const updatedNode = nodes.value.find(n => n.id === renamedNodeId);
-    if (updatedNode) {
-        selectedNode.value = updatedNode;
-    } else {
-        selectedNode.value = null;
-    }
+    selectedNode.value = updatedNode || null;
 };
 
-const onUploadStarted = (files: File[]) => { filesToUpload.value = files; }
-const handleUploadComplete = () => { refresh(); }
+const onUploadStarted = (files: File[]) => { filesToUpload.value = files; };
+const handleUploadComplete = () => { refresh(); };
 
 watch(currentNodeId, (newId) => {
     router.push({ query: { nodeId: newId === 'root' ? undefined : newId } });
