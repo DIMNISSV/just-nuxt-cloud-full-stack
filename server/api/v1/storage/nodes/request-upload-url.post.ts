@@ -8,14 +8,12 @@ interface RequestUploadPayload {
     filename: string;
     sizeBytes: number;
     mimeType: string;
-    parentUuid: string | null; // ★ ИЗМЕНЕНИЕ: Принимаем UUID родителя
+    parentUuid: string | null;
 }
 
 export default defineEventHandler(async (event) => {
     const user = event.context.user;
-    if (!user) {
-        throw createError({ statusCode: 401, message: 'Требуется авторизация' });
-    }
+    if (!user) throw createError({ statusCode: 401, message: 'Требуется авторизация' });
 
     const body = await readBody<RequestUploadPayload>(event);
     if (!body.filename || body.sizeBytes === undefined || !body.mimeType) {
@@ -29,6 +27,22 @@ export default defineEventHandler(async (event) => {
             throw createError({ statusCode: 404, message: 'Родительская папка не найдена' });
         }
         parentId = parentNode.id;
+    }
+
+    // ★ ИСПРАВЛЕНИЕ: Проверка на конфликт имен ПЕРЕД созданием
+    const conflictingNode = await prisma.storageNode.findFirst({
+        where: {
+            ownerId: user.userId,
+            parentId: parentId,
+            name: body.filename,
+        }
+    });
+
+    if (conflictingNode) {
+        throw createError({
+            statusCode: 409,
+            message: `Файл с именем "${body.filename}" уже существует в этой папке.`
+        });
     }
 
     const { uploadUrl, s3Key } = await generateUploadUrl(body.filename, body.mimeType);
@@ -47,7 +61,7 @@ export default defineEventHandler(async (event) => {
     });
 
     return {
-        nodeUuid: newNode.uuid, // ★ ИЗМЕНЕНИЕ: Возвращаем UUID
+        nodeUuid: newNode.uuid,
         uploadUrl,
     };
 });
