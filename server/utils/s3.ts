@@ -1,8 +1,8 @@
+// server/utils/s3.ts
+
 import { S3Client, PutObjectCommand, HeadObjectCommand, CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { v4 as uuidv4 } from 'uuid'
-import { createReadStream } from 'fs'
-import { stat } from 'fs/promises'
 import { runtimeConfig } from '../../config'
 
 const s3Config = runtimeConfig.s3
@@ -11,7 +11,6 @@ if (!s3Config.endpoint || !s3Config.accessKeyId || !s3Config.secretAccessKey || 
     throw new Error('Конфигурация S3 не заполнена. Проверьте ваш .env и config.ts')
 }
 
-// Создаем единственный экземпляр S3 клиента
 const s3Client = new S3Client({
     endpoint: s3Config.endpoint,
     region: s3Config.region,
@@ -29,7 +28,8 @@ const PRESIGNED_URL_EXPIRES_IN = 300 // 5 минут
  * Генерирует pre-signed URL для загрузки файла напрямую в S3.
  */
 export async function generateUploadUrl(filename: string, mimeType: string) {
-    const tempS3Key = `temp/${uuidv4()}/${filename}`
+    // Кодируем имя файла перед созданием ключа
+    const tempS3Key = `temp/${uuidv4()}/${encodeURIComponent(filename)}`
 
     const command = new PutObjectCommand({
         Bucket: BUCKET,
@@ -43,26 +43,6 @@ export async function generateUploadUrl(filename: string, mimeType: string) {
 
     return { uploadUrl, s3Key: tempS3Key }
 }
-
-/**
- * Загружает локальный файл в S3. Используется воркером.
- */
-export async function uploadToS3(localPath: string, s3Key: string): Promise<void> {
-    const fileStat = await stat(localPath)
-    const fileStream = createReadStream(localPath)
-
-    const command = new PutObjectCommand({
-        Bucket: BUCKET,
-        Key: s3Key,
-        Body: fileStream,
-        ContentLength: fileStat.size,
-    })
-
-    console.log(`[S3] Загрузка файла ${localPath} в s3://${BUCKET}/${s3Key}`)
-    await s3Client.send(command)
-    console.log(`[S3] Файл успешно загружен.`)
-}
-
 
 /**
  * Проверяет, существует ли объект в S3.
@@ -84,7 +64,8 @@ export async function objectExists(s3Key: string): Promise<boolean> {
 export async function moveObject(sourceKey: string, destinationKey: string): Promise<void> {
     const copyCommand = new CopyObjectCommand({
         Bucket: BUCKET,
-        CopySource: `${BUCKET}/${sourceKey}`,
+        // Источник должен быть правильно закодирован.
+        CopySource: `${BUCKET}/${encodeURIComponent(sourceKey)}`,
         Key: destinationKey,
     })
     await s3Client.send(copyCommand)
@@ -112,7 +93,6 @@ export async function deleteObject(s3Key: string): Promise<void> {
 export async function deleteMultipleObjects(keys: string[]): Promise<void> {
     if (keys.length === 0) return
 
-    // S3 API позволяет удалять до 1000 объектов за один запрос
     const chunks: string[][] = []
     for (let i = 0; i < keys.length; i += 1000) {
         chunks.push(keys.slice(i, i + 1000))
@@ -138,11 +118,14 @@ export async function deleteMultipleObjects(keys: string[]): Promise<void> {
     }
 }
 
+
+/**
+ * Генерирует pre-signed URL для скачивания объекта из S3.
+ */
 export async function generateDownloadUrl(s3Key: string, filename: string) {
     const command = new GetObjectCommand({
         Bucket: BUCKET,
         Key: s3Key,
-        // Этот заголовок указывает браузеру, что файл нужно скачать, а не отобразить
         ResponseContentDisposition: `attachment; filename="${encodeURIComponent(filename)}"`
     });
 
