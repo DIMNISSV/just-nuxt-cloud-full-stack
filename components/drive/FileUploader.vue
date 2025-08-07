@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, nextTick } from 'vue'; // ★ ИЗМЕНЕНИЕ: Импортируем nextTick
 
 interface UploadQueueItem {
     id: number;
@@ -23,13 +23,12 @@ interface UploadQueueItem {
 }
 
 interface RequestUploadResponse {
-    nodeUuid: string; // ★ ИЗМЕНЕНИЕ: Получаем UUID
+    nodeUuid: string;
     uploadUrl: string;
 }
 
 const props = defineProps<{
-    filesToUpload: File[];
-    currentParentUuid: string | null; // ★ ИЗМЕНЕНИЕ: Принимаем UUID
+    currentParentUuid: string | null;
 }>();
 const emit = defineEmits(['upload-complete']);
 
@@ -37,15 +36,34 @@ const toast = useToast();
 const uploadQueue = ref<UploadQueueItem[]>([]);
 let nextId = 0;
 
-watch(() => props.filesToUpload, (newFiles) => {
-    if (newFiles.length === 0) return;
-    uploadQueue.value = []; // Очищаем старую очередь
-    newFiles.forEach(file => {
-        const queueItem: UploadQueueItem = { id: nextId++, file, progress: 0, error: null };
-        uploadQueue.value.push(queueItem);
-        startUpload(queueItem);
-    });
-}, { deep: true });
+// ★ ИЗМЕНЕНИЕ: Логика полностью переписана для надежности
+const startNewUpload = async (files: File[]) => {
+    if (files.length === 0) return;
+
+    // Шаг 1: Подготавливаем очередь и обновляем реактивное состояние
+    const newQueue: UploadQueueItem[] = [];
+    for (const file of files) {
+        newQueue.push({ id: nextId++, file, progress: 0, error: null });
+    }
+    uploadQueue.value = newQueue;
+
+    // Шаг 2: Ждем, пока Vue ГАРАНТИРОВАННО обновит DOM
+    // UI с прогресс-барами появится на экране
+    await nextTick();
+
+    // Шаг 3: Теперь, когда UI виден, запускаем реальные загрузки
+    const uploadPromises = uploadQueue.value.map(item => startUpload(item));
+    await Promise.all(uploadPromises);
+
+    // Этот emit сработает, только когда все загрузки в пакете завершатся
+    if (uploadQueue.value.every(item => item.progress === 100)) {
+        emit('upload-complete');
+    }
+};
+
+defineExpose({
+    startNewUpload
+});
 
 async function startUpload(item: UploadQueueItem) {
     try {
@@ -55,40 +73,40 @@ async function startUpload(item: UploadQueueItem) {
                 filename: item.file.name,
                 sizeBytes: item.file.size,
                 mimeType: item.file.type || 'application/octet-stream',
-                parentUuid: props.currentParentUuid, // ★ ИЗМЕНЕНИЕ: Отправляем UUID
+                parentUuid: props.currentParentUuid,
             },
         });
 
         await new Promise<void>((resolve, reject) => {
             const xhr = new XMLHttpRequest();
-            xhr.open('PUT', uploadUrl);
+            xhr.open('PUT', uploadUrl, true);
+
             xhr.upload.onprogress = (event) => {
                 if (event.lengthComputable) {
                     item.progress = (event.loaded / event.total) * 100;
                 }
             };
+
             xhr.onload = () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     item.progress = 100;
-                    resolve();
+                    // Мы финализируем здесь, чтобы связать успешную загрузку с финализацией
+                    $fetch(`/api/v1/storage/nodes/${nodeUuid}/finalize-upload`, { method: 'POST' })
+                        .then(() => resolve())
+                        .catch(reject);
                 } else {
-                    reject(new Error(`Ошибка загрузки: ${xhr.statusText}`));
+                    const errorText = xhr.responseText || `Ошибка загрузки: ${xhr.statusText}`;
+                    reject(new Error(errorText));
                 }
             };
-            xhr.onerror = () => reject(new Error('Сетевая ошибка при загрузке.'));
+            xhr.onerror = () => reject(new Error('Сетевая ошибка при загрузке в хранилище.'));
             xhr.send(item.file);
         });
 
-        // ★ ИЗМЕНЕНИЕ: Финализируем по UUID
-        await $fetch(`/api/v1/storage/nodes/${nodeUuid}/finalize-upload`, { method: 'POST' });
-
-        uploadQueue.value = uploadQueue.value.filter(q => q.id !== item.id);
-        if (uploadQueue.value.length === 0) {
-            emit('upload-complete');
-        }
     } catch (e: any) {
-        item.error = e.data?.message || 'Неизвестная ошибка';
-        toast.add({ title: `Ошибка при загрузке ${item.file.name}`, description: item.error!, color: 'error' });
+        const errorMessage = e.data?.message || e.message || 'Неизвестная ошибка';
+        item.error = errorMessage;
+        toast.add({ title: `Ошибка при загрузке ${item.file.name}`, description: errorMessage, color: 'error' });
     }
 }
 </script>
