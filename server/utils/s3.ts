@@ -4,6 +4,8 @@ import { S3Client, PutObjectCommand, HeadObjectCommand, CopyObjectCommand, Delet
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { v4 as uuidv4 } from 'uuid'
 import { runtimeConfig } from '../../config'
+import { createReadStream } from 'fs'
+import { stat } from 'fs/promises'
 
 const s3Config = runtimeConfig.s3
 
@@ -23,6 +25,27 @@ const s3Client = new S3Client({
 
 const BUCKET = s3Config.bucket
 const PRESIGNED_URL_EXPIRES_IN = 300 // 5 минут
+
+/**
+ * Загружает локальный файл в S3. Используется воркером.
+ * @param localPath - Путь к файлу на диске воркера.
+ * @param s3Key - Ключ (путь) в S3, куда будет загружен файл.
+ */
+export async function uploadToS3(localPath: string, s3Key: string): Promise<void> {
+    const fileStat = await stat(localPath);
+    const fileStream = createReadStream(localPath);
+
+    const command = new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: s3Key,
+        Body: fileStream,
+        ContentLength: fileStat.size,
+    });
+
+    console.log(`[S3] Загрузка файла ${localPath} в s3://${BUCKET}/${s3Key}`);
+    await s3Client.send(command);
+    console.log(`[S3] Файл успешно загружен.`);
+}
 
 /**
  * Генерирует pre-signed URL для загрузки файла напрямую в S3.
