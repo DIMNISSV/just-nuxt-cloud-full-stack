@@ -1,8 +1,8 @@
-// server/utils/s3.ts
-
 import { S3Client, PutObjectCommand, HeadObjectCommand, CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { v4 as uuidv4 } from 'uuid'
+import { createReadStream } from 'fs'
+import { stat } from 'fs/promises'
 import { runtimeConfig } from '../../config'
 
 const s3Config = runtimeConfig.s3
@@ -24,12 +24,24 @@ const s3Client = new S3Client({
 const BUCKET = s3Config.bucket
 const PRESIGNED_URL_EXPIRES_IN = 300 // 5 минут
 
-/**
- * Генерирует pre-signed URL для загрузки файла напрямую в S3.
- */
-export async function generateUploadUrl(filename: string, mimeType: string) {
-    // Кодируем имя файла перед созданием ключа
-    const tempS3Key = `temp/${uuidv4()}/${encodeURIComponent(filename)}`
+export async function uploadToS3(localPath: string, s3Key: string): Promise<void> {
+    const fileStat = await stat(localPath);
+    const fileStream = createReadStream(localPath);
+
+    const command = new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: s3Key,
+        Body: fileStream,
+        ContentLength: fileStat.size,
+    });
+
+    console.log(`[S3] Загрузка файла ${localPath} в s3://${BUCKET}/${s3Key}`);
+    await s3Client.send(command);
+    console.log(`[S3] Файл успешно загружен.`);
+}
+
+export async function generateUploadUrl(nodeUuid: string, mimeType: string) {
+    const tempS3Key = `temp/${nodeUuid}`
 
     const command = new PutObjectCommand({
         Bucket: BUCKET,
@@ -44,9 +56,6 @@ export async function generateUploadUrl(filename: string, mimeType: string) {
     return { uploadUrl, s3Key: tempS3Key }
 }
 
-/**
- * Проверяет, существует ли объект в S3.
- */
 export async function objectExists(s3Key: string): Promise<boolean> {
     try {
         const command = new HeadObjectCommand({ Bucket: BUCKET, Key: s3Key })
@@ -58,14 +67,10 @@ export async function objectExists(s3Key: string): Promise<boolean> {
     }
 }
 
-/**
- * Перемещает объект из одного места в другое в пределах одного бакета S3.
- */
 export async function moveObject(sourceKey: string, destinationKey: string): Promise<void> {
     const copyCommand = new CopyObjectCommand({
         Bucket: BUCKET,
-        // Источник должен быть правильно закодирован.
-        CopySource: `${BUCKET}/${encodeURIComponent(sourceKey)}`,
+        CopySource: `${BUCKET}/${sourceKey}`,
         Key: destinationKey,
     })
     await s3Client.send(copyCommand)
@@ -74,9 +79,6 @@ export async function moveObject(sourceKey: string, destinationKey: string): Pro
     await s3Client.send(deleteCommand)
 }
 
-/**
- * Удаляет один объект из S3.
- */
 export async function deleteObject(s3Key: string): Promise<void> {
     const command = new DeleteObjectCommand({ Bucket: BUCKET, Key: s3Key })
     try {
@@ -87,9 +89,6 @@ export async function deleteObject(s3Key: string): Promise<void> {
     }
 }
 
-/**
- * Массово удаляет объекты из S3.
- */
 export async function deleteMultipleObjects(keys: string[]): Promise<void> {
     if (keys.length === 0) return
 
@@ -118,10 +117,6 @@ export async function deleteMultipleObjects(keys: string[]): Promise<void> {
     }
 }
 
-
-/**
- * Генерирует pre-signed URL для скачивания объекта из S3.
- */
 export async function generateDownloadUrl(s3Key: string, filename: string) {
     const command = new GetObjectCommand({
         Bucket: BUCKET,
