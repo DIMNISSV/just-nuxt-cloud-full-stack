@@ -13,12 +13,11 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <DriveCreateFolderModal :current-parent-uuid="currentUuid" @created="refresh" />
-                    <!-- ★ ИЗМЕНЕНИЕ: `upload-started` теперь вызывает новый метод -->
                     <DriveUploadModal :current-parent-uuid="currentUuid" @upload-started="onUploadStarted" />
+                    <DriveUrlDownloadModal :current-parent-uuid="currentUuid" @submitted="refresh" />
                 </div>
             </div>
 
-            <!-- ★ ИЗМЕНЕНИЕ: Добавлен `ref` и убран prop `files-to-upload` -->
             <DriveFileUploader ref="fileUploaderRef" :current-parent-uuid="currentUuid"
                 @upload-complete="handleUploadComplete" />
 
