@@ -2,8 +2,8 @@
 import prisma from '~/server/utils/prisma'
 
 export default defineEventHandler(async (event) => {
-    // Middleware /admin/_ уже проверил права
-    const { title, posterUrl: posterUrl } = await readBody(event)
+    // Middleware /admin/_ уже проверил права администратора
+    const { title, posterUrl } = await readBody(event)
     if (!title) {
         throw createError({ statusCode: 400, message: 'Название сериала обязательно' })
     }
@@ -11,9 +11,10 @@ export default defineEventHandler(async (event) => {
     const newSeries = await prisma.series.create({
         data: {
             title,
+            // Если URL постера не указан, ставим заглушку
             posterUrl: posterUrl || 'https://placehold.co/400x600/cccccc/e2e8f0?text=No+Image',
         },
     })
-    setResponseStatus(event, 201)
+    setResponseStatus(event, 201) // 201 Created
     return newSeries
 })

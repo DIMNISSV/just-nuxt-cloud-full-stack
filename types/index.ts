@@ -7,13 +7,11 @@ export enum Role {
   ADMIN = 'ADMIN'
 }
 
-// ★ НОВЫЙ ENUM
 export enum NodeType {
   FILE = 'FILE',
   FOLDER = 'FOLDER'
 }
 
-// ★ НОВЫЙ ENUM
 export enum NodeStatus {
   PENDING = 'PENDING',
   PROCESSING = 'PROCESSING',
@@ -31,7 +29,6 @@ export interface User {
   updatedAt: string;
 }
 
-// ★ НОВАЯ МОДЕЛЬ: StorageNode
 export interface StorageNode {
   id: number;
   uuid: string;
@@ -39,7 +36,7 @@ export interface StorageNode {
   name: string;
   s3Key?: string | null;
   mimeType?: string | null;
-  sizeBytes?: number; // Prisma Client преобразует BigInt в number
+  sizeBytes?: number;
   status: NodeStatus;
   meta?: Record<string, any> | null;
   ownerId: number;
@@ -47,12 +44,10 @@ export interface StorageNode {
   createdAt: string;
   updatedAt: string;
 
-  // Опциональные связи для UI
   children?: StorageNode[];
   owner?: User;
 }
 
-// ★ НОВАЯ МОДЕЛЬ: EpisodeMediaSource
 export interface EpisodeMediaSource {
   id: number;
   episodeId: number;
@@ -60,7 +55,6 @@ export interface EpisodeMediaSource {
   storageNode?: StorageNode;
 }
 
-// ★ ИЗМЕНЕНИЕ: Composition
 export interface Composition {
   id: number;
   name: string;
@@ -79,7 +73,6 @@ export interface Composition {
   subtitleStreamNode?: StorageNode;
   translator?: Translator;
 
-  // Конфиг для плеера остается концептуально тем же
   player_config?: {
     video: string;
     audio: { title: string, src: string }[];
@@ -99,7 +92,8 @@ export interface Series {
   posterUrl: string | null;
   createdAt: string;
   updatedAt: string;
-  externalIds: Record<string, any> | null;
+  // ★ ИЗМЕНЕНИЕ: Типизация externalIds
+  externalIds: Record<string, string[] | string> | null;
   seasons: Season[];
 }
 
@@ -112,19 +106,18 @@ export interface Season {
   episodes: Episode[];
 }
 
-// ★ ИЗМЕНЕНИЕ: Episode
 export interface Episode {
   id: number;
   episodeNumber: number;
   title: string | null;
   createdAt: string;
   seasonId: number;
-  externalIds: Record<string, any> | null;
+  // ★ ИЗМЕНЕНИЕ: Типизация externalIds
+  externalIds: Record<string, string> | null;
   season?: Season;
   compositions?: Composition[];
-  mediaSources?: EpisodeMediaSource[]; // Связь с исходными файлами
+  mediaSources?: EpisodeMediaSource[];
 }
-
 
 // --- Вспомогательные типы для API и UI ---
 
@@ -135,6 +128,7 @@ export interface EpisodeSelection {
   episodeNumber: number;
 }
 
+// ★ НОВОЕ: Enum для типов внешних баз данных
 export enum ExternalDbType {
   SHIKIMORI = 'shikimori',
   IMDB = 'imdb',

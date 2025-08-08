@@ -9,6 +9,6 @@ export default defineEventHandler(async (event) => {
         where: { id: seriesId }
     })
 
-    setResponseStatus(event, 204)
+    setResponseStatus(event, 204) // No Content
     return
 })

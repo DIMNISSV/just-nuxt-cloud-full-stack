@@ -56,7 +56,8 @@ const buttonText = computed(() => {
 watch(() => props.initialData, (newData) => {
     if (newData) {
         formData.title = newData.title;
-        formData.posterUrl = newData.posterUrl;
+        // ★ ИСПРАВЛЕНИЕ: Преобразуем null в пустую строку, чтобы избежать ошибки типа.
+        formData.posterUrl = newData.posterUrl || '';
     } else {
         formData.title = '';
         formData.posterUrl = '';

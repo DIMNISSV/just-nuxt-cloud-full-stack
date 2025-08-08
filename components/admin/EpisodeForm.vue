@@ -20,7 +20,6 @@
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
         </div>
 
-        <!-- Внешние ID -->
         <div class="pt-4 border-t">
             <h3 class="text-sm font-medium text-gray-900 mb-2">Внешние ID (для этого эпизода)</h3>
             <div class="space-y-2">
@@ -85,7 +84,8 @@ watch(() => props.initialData, (newData) => {
     if (newData) {
         formData.seasonNumber = newData.seasonNumber;
         formData.episodeNumber = newData.episodeNumber;
-        formData.title = newData.title;
+        // ★ ИСПРАВЛЕНИЕ: Преобразуем null в пустую строку.
+        formData.title = newData.title || '';
         formData.externalIds = { ...(newData.externalIds || {}) };
     }
 }, { immediate: true, deep: true });
@@ -94,10 +94,6 @@ async function handleSubmit() {
     isLoading.value = true;
     error.value = null;
     try {
-        // Убираем лишнее создание payload, будем отправлять formData напрямую
-        // const payload = { ...formData }; // СТАРАЯ ЛОГИКА
-
-        // Очищаем пустые externalIds, чтобы не засорять БД
         for (const key in formData.externalIds) {
             if (!formData.externalIds[key as ExternalDbType]) {
                 delete formData.externalIds[key as ExternalDbType];
@@ -105,7 +101,6 @@ async function handleSubmit() {
         }
 
         if (isEditing.value && props.initialData) {
-            // При редактировании отправляем только то, что можно менять
             await $fetch(`/api/v1/admin/episodes/${props.initialData.id}`, {
                 method: 'PUT',
                 body: {
@@ -114,10 +109,9 @@ async function handleSubmit() {
                 }
             });
         } else {
-            // ★ ИСПРАВЛЕНИЕ: При создании отправляем всю форму целиком
             await $fetch(`/api/v1/admin/series/${props.seriesId}/episodes`, {
                 method: 'POST',
-                body: formData // Отправляем все данные: seasonNumber, episodeNumber, title и т.д.
+                body: formData
             });
         }
         emit('submitted');

@@ -5,6 +5,7 @@ export default defineEventHandler(async (event) => {
     if (isNaN(episodeId)) throw createError({ statusCode: 400, message: 'Неверный ID' })
 
     await prisma.episode.delete({ where: { id: episodeId } })
-    setResponseStatus(event, 204)
+  
+    setResponseStatus(event, 204) // No Content
     return
 })
