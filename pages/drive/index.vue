@@ -13,14 +13,12 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <DriveCreateFolderModal :current-parent-uuid="currentUuid" @created="refresh" />
-                    <DriveUploadModal :current-parent-uuid="currentUuid" @upload-started="onUploadStarted" />
                     <DriveUrlDownloadModal :current-parent-uuid="currentUuid" @submitted="refresh" />
+                    <DriveUploadModal :current-parent-uuid="currentUuid" @upload-started="onUploadStarted" />
                 </div>
             </div>
-
             <DriveFileUploader ref="fileUploaderRef" :current-parent-uuid="currentUuid"
                 @upload-complete="handleUploadComplete" />
-
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 <div v-if="pending && !data" class="col-span-full text-center py-10 text-gray-500">Загрузка...</div>
                 <div v-for="node in nodes" :key="node.uuid" @click.prevent="handleMouseClick(node)"
@@ -46,8 +44,9 @@ import { onClickOutside } from '@vueuse/core';
 import { type StorageNode } from '~/types';
 import DriveUploadModal from '~/components/drive/UploadModal.vue';
 import DriveCreateFolderModal from '~/components/drive/CreateFolderModal.vue';
+import DriveUrlDownloadModal from '~/components/drive/UrlDownloadModal.vue';
 import DriveDetailsSidebar from '~/components/drive/DetailsSidebar.vue';
-import type DriveFileUploader from '~/components/drive/FileUploader.vue'; // ★ НОВОЕ: Импортируем тип компонента
+import type DriveFileUploader from '~/components/drive/FileUploader.vue';
 
 definePageMeta({ middleware: 'auth' });
 
@@ -59,8 +58,6 @@ const currentUuid = ref<string | null>(route.query.folder as string || null);
 const selectedNode = ref<StorageNode | null>(null);
 const mainAreaRef = ref<HTMLElement | null>(null);
 const longPressTimer = ref<NodeJS.Timeout | null>(null);
-
-// ★ НОВОЕ: Создаем ref для доступа к дочернему компоненту
 const fileUploaderRef = ref<InstanceType<typeof DriveFileUploader> | null>(null);
 
 const apiUrl = computed(() => {
@@ -75,12 +72,9 @@ const { data, pending, refresh } = await useFetch<{
 const nodes = computed(() => data.value?.nodes || []);
 const breadcrumbs = computed(() => data.value?.breadcrumbs || []);
 
-// ★ НОВОЕ: Обработчик теперь напрямую вызывает метод дочернего компонента
 const onUploadStarted = (files: File[]) => {
     fileUploaderRef.value?.startNewUpload(files);
 }
-
-// ... (остальной код скрипта остается без изменений) ...
 
 onClickOutside(mainAreaRef, (event) => {
     if ((event.target as HTMLElement).closest('.md\\:w-80')) return;
