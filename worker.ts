@@ -9,22 +9,17 @@ import { appConfig, runtimeConfig } from './config'
 import type { DownloadUrlJobData, ProcessMediaJobData } from './server/utils/queue'
 import { NodeStatus } from '@prisma/client'
 
-// --- КОНФИГУРАЦИЯ ---
 const redisConfig = runtimeConfig.redis
 const connection = { host: redisConfig.host, port: redisConfig.port }
 const tempDirBase = appConfig.worker.tempDir
 console.log('[Worker] Попытка подключения к Redis:', connection);
 
-// ======================================================================
-// 1. ВОРКЕР ЗАГРУЗКИ ПО URL (★ НОВАЯ ЛОГИКА)
-// ======================================================================
 const downloadUrlWorker = new Worker<DownloadUrlJobData>(
     'download-url-job',
     async (job) => {
         const { nodeUuid, sourceUrl } = job.data;
         console.log(`[DownloadWorker] Начата обработка URL: ${sourceUrl} для Node: ${nodeUuid}`);
 
-        // ★ ИЗМЕНЕНИЕ: Теперь мы запрашиваем и ownerId, и meta
         const node = await prisma.storageNode.findUnique({
             where: { uuid: nodeUuid },
             select: { ownerId: true, meta: true }
@@ -36,6 +31,7 @@ const downloadUrlWorker = new Worker<DownloadUrlJobData>(
 
         try {
             await prisma.storageNode.update({ where: { uuid: nodeUuid }, data: { status: NodeStatus.PROCESSING } });
+
             await execa(appConfig.binaries.ytdlp, ['-P', tempDir, '-o', '%(title)s.%(ext)s', sourceUrl]);
 
             const files = await readdir(tempDir);
@@ -45,7 +41,7 @@ const downloadUrlWorker = new Worker<DownloadUrlJobData>(
             const localFilePath = path.join(tempDir, downloadedFilename);
             const fileStat = await stat(localFilePath);
 
-            const permanentS3Key = `drive/${node.ownerId}/${nodeUuid}/${encodeURIComponent(downloadedFilename)}`;
+            const permanentS3Key = `drive/${node.ownerId}/${nodeUuid}`;
             await uploadToS3(localFilePath, permanentS3Key);
 
             await prisma.storageNode.update({
@@ -75,17 +71,15 @@ const downloadUrlWorker = new Worker<DownloadUrlJobData>(
     { connection }
 );
 
-// ======================================================================
-// 2. ВОРКЕР ОБРАБОТКИ МЕДИА (ЗАГЛУШКА ДЛЯ СПРИНТА 3)
-// ======================================================================
 const processMediaWorker = new Worker<ProcessMediaJobData>('process-media-job', async (job) => {
-    // ... заглушка без изменений ...
+    console.log(`[MediaWorker STUB] Получена задача для обработки медиа. NodeId: ${job.data.nodeUuid}`);
+    await prisma.storageNode.update({ where: { uuid: job.data.nodeUuid }, data: { status: NodeStatus.PROCESSING } });
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    await prisma.storageNode.update({ where: { uuid: job.data.nodeUuid }, data: { status: NodeStatus.AVAILABLE } });
+    console.log(`[MediaWorker STUB] Задача ${job.id} 'завершена'.`);
 }, { connection });
 
 
-// ======================================================================
-// ГЛОБАЛЬНОЕ ЛОГИРОВАНИЕ СОБЫТИЙ ВОРКЕРОВ
-// ======================================================================
 const workers = [downloadUrlWorker, processMediaWorker];
 
 workers.forEach(worker => {

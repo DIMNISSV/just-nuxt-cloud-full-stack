@@ -1,5 +1,3 @@
-// server/api/v1/storage/nodes/[uuid]/finalize-upload.post.ts
-
 import prisma from '~/server/utils/prisma'
 import { objectExists, moveObject } from '~/server/utils/s3'
 import { NodeStatus } from '@prisma/client'
@@ -29,7 +27,6 @@ export default defineEventHandler(async (event) => {
 
     const tempS3Key = node.s3Key;
     if (!tempS3Key) {
-        // Эта ошибка не должна происходить в нормальной ситуации
         await prisma.storageNode.delete({ where: { id: node.id } });
         throw createError({ statusCode: 500, message: 'Критическая ошибка: у узла отсутствует временный ключ S3. Запись была удалена.' });
     }
@@ -40,8 +37,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, message: 'Файл не был загружен в хранилище. Попробуйте снова.' });
     }
 
-    // Кодируем имя файла при создании постоянного ключа
-    const permanentS3Key = `drive/${user.userId}/${node.uuid}/${encodeURIComponent(node.name)}`;
+    const permanentS3Key = `drive/${user.userId}/${node.uuid}`;
 
     await moveObject(tempS3Key, permanentS3Key);
 

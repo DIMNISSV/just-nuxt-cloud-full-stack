@@ -1,5 +1,3 @@
-// server/api/v1/storage/nodes/request-upload-url.post.ts
-
 import prisma from '~/server/utils/prisma'
 import { generateUploadUrl } from '~/server/utils/s3'
 import { NodeType, NodeStatus } from '@prisma/client'
@@ -29,7 +27,6 @@ export default defineEventHandler(async (event) => {
         parentId = parentNode.id;
     }
 
-    // ★ ИСПРАВЛЕНИЕ: Проверка на конфликт имен ПЕРЕД созданием
     const conflictingNode = await prisma.storageNode.findFirst({
         where: {
             ownerId: user.userId,
@@ -45,13 +42,11 @@ export default defineEventHandler(async (event) => {
         });
     }
 
-    const { uploadUrl, s3Key } = await generateUploadUrl(body.filename, body.mimeType);
-
     const newNode = await prisma.storageNode.create({
         data: {
             type: NodeType.FILE,
             name: body.filename,
-            s3Key,
+            s3Key: null,
             sizeBytes: body.sizeBytes,
             mimeType: body.mimeType,
             status: NodeStatus.PENDING,
@@ -60,8 +55,15 @@ export default defineEventHandler(async (event) => {
         },
     });
 
+    const { uploadUrl, s3Key } = await generateUploadUrl(newNode.uuid, body.mimeType);
+
+    const updatedNode = await prisma.storageNode.update({
+        where: { id: newNode.id },
+        data: { s3Key: s3Key }
+    });
+
     return {
-        nodeUuid: newNode.uuid,
+        nodeUuid: updatedNode.uuid,
         uploadUrl,
     };
 });
