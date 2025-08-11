@@ -6,7 +6,7 @@ import mime from 'mime-types'
 import prisma from './server/utils/prisma'
 import { uploadToS3 } from './server/utils/s3'
 import { appConfig, runtimeConfig } from './config'
-import type { DownloadUrlJobData, ProcessMediaJobData } from './server/utils/queue'
+import type { DownloadUrlJobData } from './server/utils/queue'
 import { NodeStatus } from '@prisma/client'
 
 const redisConfig = runtimeConfig.redis
@@ -71,20 +71,7 @@ const downloadUrlWorker = new Worker<DownloadUrlJobData>(
     { connection }
 );
 
-const processMediaWorker = new Worker<ProcessMediaJobData>('process-media-job', async (job) => {
-    console.log(`[MediaWorker STUB] Получена задача для обработки медиа. NodeId: ${job.data.nodeUuid}`);
-    await prisma.storageNode.update({ where: { uuid: job.data.nodeUuid }, data: { status: NodeStatus.PROCESSING } });
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    await prisma.storageNode.update({ where: { uuid: job.data.nodeUuid }, data: { status: NodeStatus.AVAILABLE } });
-    console.log(`[MediaWorker STUB] Задача ${job.id} 'завершена'.`);
-}, { connection });
+downloadUrlWorker.on('completed', job => console.log(`[Queue] Завершена задача #${job.id} в очереди '${downloadUrlWorker.name}'`));
+downloadUrlWorker.on('failed', (job, err) => console.error(`[Queue] Ошибка в задаче #${job?.id} в очереди '${downloadUrlWorker.name}': ${err.message}`));
 
-
-const workers = [downloadUrlWorker, processMediaWorker];
-
-workers.forEach(worker => {
-    worker.on('completed', job => console.log(`[Queue] Завершена задача #${job.id} в очереди '${worker.name}'`));
-    worker.on('failed', (job, err) => console.error(`[Queue] Ошибка в задаче #${job?.id} в очереди '${worker.name}': ${err.message}`));
-});
-
-console.log('🚀 Все воркеры запущены и готовы к работе...');
+console.log('🚀 Воркер для загрузки по URL запущен и готов к работе...');

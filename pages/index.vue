@@ -1,7 +1,7 @@
 <template>
-  <div>Перенаправление на главную страницу...</div>
+  <div>Перенаправление на ваш диск...</div>
 </template>
 
 <script setup>
-await navigateTo('/series', { redirectCode: 301 });
+await navigateTo('/drive', { redirectCode: 301 });
 </script>
