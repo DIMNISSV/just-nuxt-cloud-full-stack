@@ -11,7 +11,7 @@ datasource db {
 }
 
 // ======================================================================
-// 1. БАЗОВЫЕ МОДЕЛИ (User, Role) - без изменений
+// 1. БАЗОВЫЕ МОДЕЛИ (User, Role)
 // ======================================================================
 
 model User {
@@ -22,7 +22,6 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // ★ ИЗМЕНЕНИЕ: Связь с новым StorageNode
   storageNodes StorageNode[]
 }
 
@@ -35,7 +34,6 @@ enum Role {
 // 2. ЯДРО: СЕРВИС ХРАНИЛИЩА (Storage Service)
 // ======================================================================
 
-// ★ НОВАЯ МОДЕЛЬ: Универсальный узел хранения (файл или папка)
 model StorageNode {
   id        Int      @id @default(autoincrement())
   uuid      String   @unique @default(uuid())
@@ -49,7 +47,7 @@ model StorageNode {
   status    NodeStatus @default(AVAILABLE)
 
   // -- Общие поля --
-  meta      Json?    // Для любой дополнительной информации (качество, язык, превью и т.д.)
+  meta      Json?    // Для любой дополнительной информации
   owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId   Int
 
@@ -61,117 +59,18 @@ model StorageNode {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // -- Связи с "приложениями", которые используют этот узел --
-  mediaSourceForEpisodes EpisodeMediaSource[]
-  compositionAsVideo     Composition[]        @relation("CompositionVideoStream")
-  compositionAsAudio     Composition[]        @relation("CompositionAudioStream")
-  compositionAsSubtitle  Composition[]        @relation("CompositionSubtitleStream")
-
   @@unique([ownerId, parentId, name])
   @@map("storage_nodes")
 }
 
-// ★ НОВЫЙ ENUM: Тип узла в хранилище
 enum NodeType {
   FILE
   FOLDER
 }
 
-// ★ НОВЫЙ ENUM: Статус обработки файла
 enum NodeStatus {
   PENDING     // Ожидает загрузки/обработки
   PROCESSING  // В процессе обработки воркером
   AVAILABLE   // Готов к использованию
   ERROR       // Ошибка обработки
-}
-
-// ======================================================================
-// 3. ПРИЛОЖЕНИЕ "МЕДИАТЕКА" (Media Library Application)
-// ======================================================================
-
-// ★ НОВАЯ МОДЕЛЬ: Связывает эпизод с его исходным файлом в хранилище
-model EpisodeMediaSource {
-  id            Int         @id @default(autoincrement())
-  episode       Episode     @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  episodeId     Int
-  storageNode   StorageNode @relation(fields: [storageNodeId], references: [id], onDelete: Cascade)
-  storageNodeId Int
-
-  @@unique([episodeId, storageNodeId])
-  @@map("episode_media_sources")
-}
-
-// ★ ИЗМЕНЕНИЕ: Модель Composition теперь ссылается напрямую на StorageNode
-model Composition {
-  id            Int      @id @default(autoincrement())
-  name          String
-  audioOffsetMs Int      @default(0)
-  createdAt     DateTime @default(now())
-  
-  episodeId     Int
-  episode       Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-
-  videoStreamNodeId   Int
-  videoStreamNode     StorageNode @relation("CompositionVideoStream", fields: [videoStreamNodeId], references: [id], onDelete: Cascade)
-  
-  audioStreamNodeId   Int
-  audioStreamNode     StorageNode @relation("CompositionAudioStream", fields: [audioStreamNodeId], references: [id], onDelete: Cascade)
-  
-  subtitleStreamNodeId Int?
-  subtitleStreamNode   StorageNode? @relation("CompositionSubtitleStream", fields: [subtitleStreamNodeId], references: [id], onDelete: SetNull)
-
-  translatorId  Int?
-  translator    Translator? @relation(fields: [translatorId], references: [id], onDelete: SetNull)
-
-  @@map("compositions")
-}
-
-model Translator {
-  id           Int           @id @default(autoincrement())
-  name         String        @unique
-  compositions Composition[]
-
-  @@map("translators")
-}
-
-model Series {
-  id          Int      @id @default(autoincrement())
-  title       String   @unique
-  posterUrl   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  seasons     Season[]
-  externalIds Json?
-
-  @@map("series")
-}
-
-model Season {
-  id           Int       @id @default(autoincrement())
-  seasonNumber Int
-  createdAt    DateTime  @default(now())
-  series       Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  seriesId     Int
-  episodes     Episode[]
-
-  @@unique([seriesId, seasonNumber])
-  @@map("seasons")
-}
-
-// ★ ИЗМЕНЕНИЕ: Модель Episode теперь ссылается на новую связующую модель
-model Episode {
-  id            Int      @id @default(autoincrement())
-  episodeNumber Int
-  title         String?
-  createdAt     DateTime @default(now())
-  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  seasonId      Int
-
-  compositions Composition[]
-  mediaSources EpisodeMediaSource[] // Связь с исходными файлами
-  
-  externalIds Json?
-
-  @@unique([seasonId, episodeNumber])
-  @@map("episodes")
 }
