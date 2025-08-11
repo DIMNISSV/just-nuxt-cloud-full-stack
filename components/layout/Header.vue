@@ -3,7 +3,8 @@
         <nav class="container mx-auto flex items-center justify-between p-4 flex-wrap">
             <!-- Левая часть: Лого и основные разделы -->
             <div class="flex items-center gap-6 flex-wrap">
-                <NuxtLink to="/drive" class="text-xl font-bold">jCloud.me</NuxtLink>
+                <!-- <NuxtLink to="/drive" class="text-xl font-bold"><NuxtImg src="/logo.png"></NuxtImg></NuxtLink> -->
+                <NuxtLink to="/drive" class="text-xl font-bold">jcloud.me</NuxtLink>
                 <NuxtLink to="/drive" class="text-sm hover:text-blue-300">Мой Диск</NuxtLink>
             </div>
 
