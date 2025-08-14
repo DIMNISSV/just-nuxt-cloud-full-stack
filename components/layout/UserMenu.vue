@@ -29,7 +29,6 @@ const { user, logout } = useAuth();
 const isOpen = ref(false);
 const menuRef = ref(null);
 
-// Закрываем меню при клике вне его
 onClickOutside(menuRef, () => isOpen.value = false);
 
 const handleLogout = () => {

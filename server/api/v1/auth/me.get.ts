@@ -1,4 +1,4 @@
-// server/api/v1/auth/me.get.ts
+
 import prisma from '~/server/utils/prisma'
 
 export default defineEventHandler(async (event) => {
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     })
 
     if (!user) {
-        // Эта ошибка маловероятна, если токен валидный, но для полноты картины оставим
+        
         throw createError({ statusCode: 404, message: 'Пользователь не найден' })
     }
 

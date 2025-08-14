@@ -20,10 +20,10 @@ export default defineEventHandler(async (event) => {
     data: {
       username,
       passwordHash,
-      // Первого зарегистрированного пользователя делаем админом для удобства
+      
       role: (await prisma.user.count()) === 0 ? 'ADMIN' : 'USER',
     },
-    select: { id: true, username: true, role: true }, // Никогда не возвращаем хеш пароля
+    select: { id: true, username: true, role: true }, 
   })
 
   return user

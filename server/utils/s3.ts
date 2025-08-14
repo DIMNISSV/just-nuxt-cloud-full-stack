@@ -22,7 +22,7 @@ const s3Client = new S3Client({
 })
 
 const BUCKET = s3Config.bucket
-const PRESIGNED_URL_EXPIRES_IN = 300 // 5 минут
+const PRESIGNED_URL_EXPIRES_IN = 300 
 
 export async function uploadToS3(localPath: string, s3Key: string): Promise<void> {
     const fileStat = await stat(localPath);

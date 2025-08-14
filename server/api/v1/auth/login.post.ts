@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   const token = jwt.sign(
     { userId: user.id, role: user.role },
     config.jwtSecret,
-    { expiresIn: '7d' } // Срок жизни токена
+    { expiresIn: '7d' } 
   )
 
   return { token }

@@ -23,7 +23,7 @@ import { ref } from 'vue';
 import { NodeType } from '~/types';
 
 const props = defineProps<{
-    currentParentUuid: string | null; // ★ ИЗМЕНЕНИЕ: Принимаем UUID
+    currentParentUuid: string | null;
 }>();
 
 const emit = defineEmits(['created']);
@@ -43,7 +43,7 @@ async function handleCreate(close: () => void) {
             body: {
                 name: newFolderName.value,
                 type: NodeType.FOLDER,
-                parentUuid: props.currentParentUuid, // ★ ИЗМЕНЕНИЕ: Отправляем UUID
+                parentUuid: props.currentParentUuid, 
             },
         });
         toast.add({ title: 'Папка успешно создана!', color: 'success' });

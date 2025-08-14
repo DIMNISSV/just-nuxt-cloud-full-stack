@@ -1,4 +1,4 @@
-// server/api/v1/storage/nodes/root/children.get.ts
+
 
 import prisma from '~/server/utils/prisma'
 
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     const nodesRaw = await prisma.storageNode.findMany({
         where: {
             ownerId: user.userId,
-            parentId: null, // Корневые узлы
+            parentId: null, 
         },
         orderBy: [{ type: 'asc' }, { name: 'asc' }],
     })
@@ -21,5 +21,5 @@ export default defineEventHandler(async (event) => {
         sizeBytes: node.sizeBytes ? Number(node.sizeBytes) : null
     }));
 
-    return { nodes, breadcrumbs: [] }; // В корне нет "хлебных крошек"
+    return { nodes, breadcrumbs: [] }; 
 });

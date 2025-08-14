@@ -2,9 +2,7 @@
     <div class="flex h-full">
         <div class="flex-grow p-6" ref="mainAreaRef">
             <h1 class="text-3xl font-bold mb-4">Мой Диск</h1>
-            <!-- Панель навигации и кнопок -->
             <div class="flex justify-between items-center mb-4 p-4 bg-gray-50 rounded-lg border">
-                <!-- Хлебные крошки -->
                 <div class="text-sm">
                     <button @click="navigateToNode(null)" class="hover:underline text-blue-600">Корень</button>
                     <template v-for="crumb in breadcrumbs" :key="crumb.uuid">
@@ -13,7 +11,6 @@
                         }}</button>
                     </template>
                 </div>
-                <!-- Кнопки действий -->
                 <div class="flex items-center gap-2">
                     <DriveCreateFolderModal :current-parent-uuid="currentUuid" @created="refresh" />
                     <DriveUrlDownloadModal :current-parent-uuid="currentUuid" @submitted="refresh" />
@@ -21,11 +18,9 @@
                 </div>
             </div>
 
-            <!-- Компонент для активных загрузок -->
             <DriveFileUploader ref="fileUploaderRef" :current-parent-uuid="currentUuid"
                 @upload-complete="handleUploadComplete" />
 
-            <!-- Сетка с файлами и папками -->
             <div v-if="pending && !data" class="col-span-full text-center py-10 text-gray-500">Загрузка...</div>
             <div v-else-if="!pending && nodes.length === 0" class="col-span-full text-center py-10 text-gray-500">
                 Папка пуста
@@ -40,7 +35,6 @@
             </div>
         </div>
 
-        <!-- Боковая панель со свойствами -->
         <DriveDetailsSidebar :node="selectedNode" @close="selectedNode = null" @deleted="handleDelete"
             @renamed="handleRenameSuccess" />
     </div>
@@ -87,7 +81,6 @@ const onUploadStarted = (files: File[]) => {
 }
 
 onClickOutside(mainAreaRef, (event) => {
-    // Не закрывать сайдбар, если клик был внутри него
     if ((event.target as HTMLElement).closest('.md\\:w-80')) return;
     selectedNode.value = null;
 });
@@ -101,10 +94,10 @@ const handleTouchStart = (node: StorageNode) => {
     longPressTimer.value = setTimeout(() => {
         selectNode(node);
         longPressTimer.value = null;
-    }, 500); // 500ms для долгого нажатия
+    }, 500);
 };
 const handleTouchEnd = (node: StorageNode) => {
-    if (longPressTimer.value) { // Если таймер не сработал, это был быстрый тап
+    if (longPressTimer.value) {
         clearTimeout(longPressTimer.value);
         longPressTimer.value = null;
         navigateOnNode(node);

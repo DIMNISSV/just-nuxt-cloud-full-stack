@@ -16,7 +16,7 @@ import { ref, nextTick } from 'vue';
 
 const props = defineProps<{
   modelValue: string;
-  nodeUuid: string; // ★ ИЗМЕНЕНИЕ: Принимаем UUID
+  nodeUuid: string;
 }>();
 
 const emit = defineEmits(['update:modelValue', 'renamed']);
@@ -43,7 +43,6 @@ const save = async () => {
   }
   isLoading.value = true;
   try {
-    // ★ ИЗМЕНЕНИЕ: Отправляем запрос по UUID
     await $fetch(`/api/v1/storage/nodes/${props.nodeUuid}`, {
       method: 'PUT',
       body: { name: editableName.value },

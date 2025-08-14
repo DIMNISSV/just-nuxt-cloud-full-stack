@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'; // ★ ИЗМЕНЕНИЕ: Импортируем nextTick
+import { ref, nextTick } from 'vue';
 
 interface UploadQueueItem {
     id: number;
@@ -36,26 +36,19 @@ const toast = useToast();
 const uploadQueue = ref<UploadQueueItem[]>([]);
 let nextId = 0;
 
-// ★ ИЗМЕНЕНИЕ: Логика полностью переписана для надежности
 const startNewUpload = async (files: File[]) => {
     if (files.length === 0) return;
 
-    // Шаг 1: Подготавливаем очередь и обновляем реактивное состояние
     const newQueue: UploadQueueItem[] = [];
     for (const file of files) {
         newQueue.push({ id: nextId++, file, progress: 0, error: null });
     }
     uploadQueue.value = newQueue;
-
-    // Шаг 2: Ждем, пока Vue ГАРАНТИРОВАННО обновит DOM
-    // UI с прогресс-барами появится на экране
     await nextTick();
 
-    // Шаг 3: Теперь, когда UI виден, запускаем реальные загрузки
     const uploadPromises = uploadQueue.value.map(item => startUpload(item));
     await Promise.all(uploadPromises);
 
-    // Этот emit сработает, только когда все загрузки в пакете завершатся
     if (uploadQueue.value.every(item => item.progress === 100)) {
         emit('upload-complete');
     }
@@ -90,7 +83,6 @@ async function startUpload(item: UploadQueueItem) {
             xhr.onload = () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     item.progress = 100;
-                    // Мы финализируем здесь, чтобы связать успешную загрузку с финализацией
                     $fetch(`/api/v1/storage/nodes/${nodeUuid}/finalize-upload`, { method: 'POST' })
                         .then(() => resolve())
                         .catch(reject);

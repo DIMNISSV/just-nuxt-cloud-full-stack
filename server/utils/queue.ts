@@ -1,4 +1,4 @@
-// server/utils/queue.ts
+
 
 import { Queue } from 'bullmq'
 import { runtimeConfig } from '../../config'
@@ -9,9 +9,9 @@ const connection = {
     port: redisConfig.port,
 }
 
-// ======================================================================
-// ОЧЕРЕДЬ ДЛЯ ЗАГРУЗКИ ПО URL
-// ======================================================================
+
+
+
 const downloadUrlQueueName = 'download-url-job'
 
 export interface DownloadUrlJobData {

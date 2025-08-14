@@ -1,20 +1,20 @@
-// server/data/db.ts
+
 
 import { ExternalDbType } from '~/types';
 import type { Series, MediaStream, Upload, Translator, User, Composition } from '~/types';
 
-// Используем пересечение типов для хранения внутренних полей в `compositions`
+
 type StoredComposition = Composition & { episodeId: number };
 
-// --- Пользователи ---
+
 export let users: User[] = [
   { id: 1, username: 'admin', passwordHash: 'hashed_admin', role: 'admin' },
   { id: 2, username: 'user', passwordHash: 'hashed_user', role: 'user' },
 ];
 
-// --- Медиапотоки ---
+
 export let mediaStreams: MediaStream[] = [
-  // Потоки для "Атаки Титанов"
+  
   { id: 101, type: 'video', file_path: '/storage/aot_e1_raw.mkv', codec_info: 'H.265, 1080p', uploaderUsername: 'User2', title: 'AOT E1 BDRip' },
   { id: 102, type: 'audio', file_path: '/storage/aot_e1_jpn.mka', codec_info: 'FLAC', uploaderUsername: 'User2', language: 'JPN', title: 'Original E1' },
   { id: 202, type: 'audio', file_path: '/storage/aot_e1_rus_tvshows.mka', codec_info: 'AC3', uploaderUsername: 'User1', language: 'RUS', title: 'TVShows E1' },
@@ -22,12 +22,12 @@ export let mediaStreams: MediaStream[] = [
   { id: 402, type: 'audio', file_path: '/storage/aot_e2_rus_tvshows.mka', codec_info: 'AC3', uploaderUsername: 'User1', language: 'RUS', title: 'TVShows E2' },
   { id: 501, type: 'video', file_path: '/storage/aot_e2_raw.mkv', codec_info: 'H.265, 1080p', uploaderUsername: 'User1', title: 'AOT E2 BDRip' },
   { id: 502, type: 'audio', file_path: '/storage/aot_e2_rus_tvshows.mka', codec_info: 'AC3', uploaderUsername: 'User1', language: 'RUS', title: 'Неизвестный E2' },
-  // Потоки для "Ковбоя Бибопа"
+  
   { id: 301, type: 'video', file_path: '/storage/bebop_raw.mkv', codec_info: 'H.264, 1080p', uploaderUsername: 'User1', title: 'Bebop BDRip' },
   { id: 302, type: 'audio', file_path: '/storage/bebop_jpn.mka', codec_info: 'DTS', uploaderUsername: 'User1', language: 'JPN', title: 'Original Bebop' },
 ];
 
-// --- Сериалы (Франшизы) ---
+
 export let series: Series[] = [
   {
     id: 42,
@@ -35,7 +35,7 @@ export let series: Series[] = [
     posterUrl: 'https://placehold.co/400x600/2d3748/e2e8f0?text=AoT',
     externalIds: {
       [ExternalDbType.IMDB]: ['tt2560140'],
-      [ExternalDbType.SHIKIMORI]: ['16498'] // Только ID первого сезона для начала
+      [ExternalDbType.SHIKIMORI]: ['16498'] 
     },
     seasons: [
       {
@@ -66,7 +66,7 @@ export let series: Series[] = [
   }
 ];
 
-// --- Загрузки ---
+
 export let uploads: Upload[] = [
   {
     id: 1,
@@ -106,14 +106,14 @@ export let uploads: Upload[] = [
   }
 ];
 
-// --- Переводчики ---
+
 export let translators: Translator[] = [
   { id: 1, name: 'Неизвестный переводчик' },
   { id: 10, name: 'Original' },
   { id: 15, name: 'TVShows' },
 ];
 
-// --- Сборки (Переводы) ---
+
 export let compositions: StoredComposition[] = [
   {
     id: 1001,

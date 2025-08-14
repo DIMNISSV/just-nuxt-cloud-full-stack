@@ -42,7 +42,6 @@
                 </div>
             </div>
             <div class="mt-8 border-t border-gray-700 pt-4 text-center text-xs">
-                <!-- ★ ИЗМЕНЕНИЕ: Обновляем копирайт -->
                 jcloud.me © {{ new Date().getFullYear() }}
             </div>
         </div>

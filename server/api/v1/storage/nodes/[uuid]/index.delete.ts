@@ -1,4 +1,4 @@
-// server/api/v1/storage/nodes/[uuid]/index.delete.ts
+
 
 import prisma from '~/server/utils/prisma'
 import { deleteMultipleObjects } from '~/server/utils/s3'

@@ -1,4 +1,4 @@
-// server/api/v1/account/compositions/[id]/index.put.ts
+
 
 import prisma from '~/server/utils/prisma'
 
@@ -18,15 +18,15 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, message: 'Не все обязательные поля заполнены' })
     }
 
-    // TODO: В будущем здесь нужна проверка, что пользователь имеет право редактировать эту сборку
-    // (например, он является владельцем аудиодорожки). Пока для простоты ее опускаем.
+    
+    
 
     const translator = await prisma.translator.findUnique({ where: { id: translatorId } })
     if (!translator) {
         throw createError({ statusCode: 404, message: 'Переводчик не найден' })
     }
 
-    // Обновляем запись
+    
     const updatedComposition = await prisma.composition.update({
         where: { id: compositionId },
         data: {

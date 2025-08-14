@@ -39,7 +39,6 @@
             </div>
             <hr class="border-gray-200" />
             <div class="space-y-2">
-                <!-- ★ ИЗМЕНЕНИЕ: :to заменен на @click для рендера в виде <button> -->
                 <UButton v-if="node.type === 'FILE'" @click="handleDownloadClick"
                     icon="i-heroicons-arrow-down-tray-20-solid" color="primary" variant="outline" block label="Скачать" />
                 <UButton icon="i-heroicons-trash-20-solid" color="error" variant="outline" block label="Удалить"
@@ -58,7 +57,6 @@ const props = defineProps<{
 }>();
 const emit = defineEmits(['close', 'deleted', 'renamed']);
 
-// ★ НОВОЕ: Обработчик для программного перехода на страницу скачивания
 const handleDownloadClick = () => {
     if (props.node) {
         navigateTo(`/drive/${props.node.uuid}/download`, { open: { target: '_blank' } });

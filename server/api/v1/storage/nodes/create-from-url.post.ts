@@ -1,4 +1,4 @@
-// server/api/v1/storage/nodes/create-from-url.post.ts
+
 
 import prisma from '~/server/utils/prisma'
 import { addDownloadUrlJob } from '~/server/utils/queue'
@@ -29,35 +29,35 @@ export default defineEventHandler(async (event) => {
         parentId = parentNode.id;
     }
 
-    // Пытаемся извлечь имя файла из URL
+    
     let filename = 'downloaded_file';
     try {
         const url = new URL(sourceUrl);
         const pathnameParts = url.pathname.split('/');
         filename = pathnameParts.pop() || filename;
     } catch (e) {
-        // Если URL некорректный, оставляем имя по умолчанию
+        
     }
 
-    // Создаем запись-плейсхолдер в базе данных
+    
     const newNode = await prisma.storageNode.create({
         data: {
             type: NodeType.FILE,
             name: filename,
-            status: NodeStatus.PENDING, // Статус "В очереди"
+            status: NodeStatus.PENDING, 
             ownerId: user.userId,
             parentId,
-            meta: { sourceUrl } // Сохраняем исходный URL в метаданные
+            meta: { sourceUrl } 
         },
     });
 
-    // Добавляем задачу в очередь BullMQ
+    
     await addDownloadUrlJob({
         nodeUuid: newNode.uuid,
         sourceUrl: sourceUrl,
     });
 
-    setResponseStatus(event, 202); // 202 Accepted - Запрос принят, но обработка не завершена
+    setResponseStatus(event, 202); 
     return {
         ...newNode,
         sizeBytes: null

@@ -1,4 +1,4 @@
-// server/api/v1/storage/nodes/index.post.ts
+
 
 import prisma from '~/server/utils/prisma'
 import { NodeType } from '@prisma/client'
@@ -6,7 +6,7 @@ import { NodeType } from '@prisma/client'
 interface CreateNodePayload {
     type: NodeType;
     name: string;
-    parentUuid?: string | null; // ★ ИЗМЕНЕНИЕ: Принимаем UUID родителя
+    parentUuid?: string | null; 
 }
 
 export default defineEventHandler(async (event) => {

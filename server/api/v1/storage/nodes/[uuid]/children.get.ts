@@ -1,4 +1,4 @@
-// server/api/v1/storage/nodes/[uuid]/children.get.ts
+
 
 import prisma from '~/server/utils/prisma'
 
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
         breadcrumbs.unshift({ uuid: parent.uuid, name: parent.name });
         currentId = parent.parentId;
     }
-    // Добавляем текущую папку в начало хлебных крошек
+    
     breadcrumbs.push({ uuid: parentNode.uuid, name: parentNode.name });
 
 

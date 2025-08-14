@@ -1,6 +1,6 @@
-// types/index.ts
 
-// --- Enums, соответствующие схеме Prisma ---
+
+
 
 export enum Role {
   USER = 'USER',
@@ -19,7 +19,7 @@ export enum NodeStatus {
   ERROR = 'ERROR'
 }
 
-// --- Модели данных, соответствующие схеме Prisma ---
+
 
 export interface User {
   id: number;

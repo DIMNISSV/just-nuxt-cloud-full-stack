@@ -1,4 +1,4 @@
-// server/api/v1/storage/nodes/[uuid]/index.put.ts
+
 
 import prisma from '~/server/utils/prisma'
 

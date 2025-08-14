@@ -1,6 +1,4 @@
-// nuxt.config.ts
 import tailwindcss from "@tailwindcss/vite";
-// Импортируем нашу общую конфигурацию
 import { runtimeConfig } from './config';
 
 export default defineNuxtConfig({
@@ -14,6 +12,5 @@ export default defineNuxtConfig({
       tailwindcss(),
     ],
   },
-  // Просто передаем импортированный объект в Nuxt
   runtimeConfig,
 })
